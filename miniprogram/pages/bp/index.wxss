@@ -18,7 +18,19 @@
   display: block;
   font-size: 36rpx;
   font-weight: bold;
+  margin-bottom: 10rpx;
+}
+
+.player-team {
   margin-bottom: 15rpx;
+}
+
+.my-team {
+  display: inline-block;
+  font-size: 24rpx;
+  background: rgba(255, 255, 255, 0.3);
+  padding: 5rpx 15rpx;
+  border-radius: 15rpx;
 }
 
 .current-action {
@@ -26,6 +38,7 @@
   justify-content: center;
   align-items: center;
   gap: 10rpx;
+  flex-wrap: wrap;
 }
 
 .action-team {
@@ -38,6 +51,34 @@
   background: rgba(255, 255, 255, 0.2);
   padding: 5rpx 15rpx;
   border-radius: 20rpx;
+}
+
+.vote-status {
+  font-size: 24rpx;
+  background: rgba(82, 196, 26, 0.8);
+  padding: 5rpx 12rpx;
+  border-radius: 15rpx;
+}
+
+.debug-info {
+  margin-top: 15rpx;
+  padding: 10rpx 15rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10rpx;
+  font-size: 20rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.debug-text {
+  color: rgba(255, 255, 255, 0.9);
+  flex: 1;
+}
+
+.debug-time {
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: 10rpx;
 }
 
 .teams {
@@ -141,6 +182,12 @@
   text-transform: capitalize;
 }
 
+.history-votes {
+  font-size: 20rpx;
+  color: #999;
+  margin-left: 10rpx;
+}
+
 .maps {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -158,6 +205,14 @@
 
 .map-item.disabled {
   opacity: 0.5;
+}
+
+.map-item.not-my-turn {
+  opacity: 0.6;
+}
+
+.map-item.not-my-turn .map-placeholder {
+  background: linear-gradient(135deg, #999 0%, #666 100%);
 }
 
 .map-image {

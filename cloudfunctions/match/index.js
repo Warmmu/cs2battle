@@ -21,8 +21,8 @@ exports.main = async (event, context) => {
       return { code: 1005, message: '房间状态错误，所有玩家需准备', data: null }
     }
     
-    if (room.players.length < 1) {
-      return { code: 1001, message: '玩家数量不足（单人测试模式）', data: null }
+    if (room.players.length < 2) {
+      return { code: 1001, message: '玩家数量不足，至少需要2人', data: null }
     }
     
     // 使用 ELO 平衡算法分队
@@ -67,18 +67,6 @@ exports.main = async (event, context) => {
  */
 function balanceTeams(players) {
   const n = players.length
-  
-  // 单人测试模式：特殊处理
-  if (n === 1) {
-    return {
-      teamA: players,
-      teamB: [],
-      elo_diff: 0,
-      teamA_avg: players[0].elo,
-      teamB_avg: 0
-    }
-  }
-  
   const halfSize = Math.floor(n / 2)
   
   let bestDiff = Infinity

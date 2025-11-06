@@ -29,6 +29,26 @@
   text-transform: capitalize;
 }
 
+.sync-status {
+  margin-top: 15rpx;
+  padding: 10rpx 15rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10rpx;
+  font-size: 20rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sync-text {
+  color: rgba(82, 196, 26, 1);
+  font-weight: bold;
+}
+
+.sync-time {
+  color: rgba(255, 255, 255, 0.8);
+}
+
 .score-section {
   background: #fff;
   border-radius: 20rpx;

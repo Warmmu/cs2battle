@@ -6,7 +6,9 @@ Page({
     room: null,
     room_id: '',
     polling: null,
-    currentPlayerReady: false
+    currentPlayerReady: false,
+    availableRooms: [], // 可用房间列表
+    matchingStarted: false // 防止重复触发匹配
   },
 
   async onJoinRoom() {
@@ -28,8 +30,15 @@ Page({
       if (res.result.code === 0) {
         this.setData({
           room: res.result.data,
-          room_id: res.result.data._id
+          room_id: res.result.data._id,
+          availableRooms: [] // 清空房间列表
         })
+
+        // 停止房间列表轮询
+        if (this.roomListPolling) {
+          clearInterval(this.roomListPolling)
+          this.roomListPolling = null
+        }
 
         // 开始轮询房间状态
         this.startPolling()
@@ -127,14 +136,12 @@ Page({
           title: '匹配成功',
           icon: 'success'
         })
-
-        // 跳转到 BP 页面
-        setTimeout(() => {
-          wx.navigateTo({
-            url: `/pages/bp/index?room_id=${room_id}`
-          })
-        }, 1500)
+        
+        // 不直接跳转，让轮询检测到 bp 状态后自动跳转
+        // 这样可以确保所有玩家都能收到状态更新并跳转
       } else {
+        // 匹配失败，重置标志
+        this.setData({ matchingStarted: false })
         wx.showToast({
           title: res.result.message,
           icon: 'none'
@@ -142,6 +149,7 @@ Page({
       }
     } catch (err) {
       wx.hideLoading()
+      this.setData({ matchingStarted: false })
       console.error(err)
       wx.showToast({
         title: '匹配失败',
@@ -180,7 +188,7 @@ Page({
   },
 
   async getRoomStatus() {
-    const { room_id, player_id } = this.data
+    const { room_id, player_id, matchingStarted } = this.data
     if (!room_id) return
 
     try {
@@ -211,9 +219,20 @@ Page({
           currentPlayerReady: currentPlayerReady
         })
 
-        // 如果所有人准备好了，自动开始匹配
-        if (room.status === 'ready') {
+        // 如果房间状态变为 matching 或 bp，说明匹配已完成，自动跳转到 BP 页面
+        if (room.status === 'matching' || room.status === 'bp') {
+          console.log('🎯 匹配已完成，跳转到 BP 页面')
+          this.stopPolling()
+          wx.redirectTo({
+            url: `/pages/bp/index?room_id=${room_id}`
+          })
+          return
+        }
+
+        // 如果所有人准备好了且还没开始匹配，由第一个检测到的人触发匹配
+        if (room.status === 'ready' && !matchingStarted) {
           console.log('✨ 所有人准备完毕，开始匹配！')
+          this.setData({ matchingStarted: true })
           this.onStartMatch()
         }
       }
@@ -281,6 +300,25 @@ Page({
     })
   },
 
+  async getAvailableRooms() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'room',
+        data: {
+          action: 'getAvailableRooms'
+        }
+      })
+
+      if (res.result.code === 0) {
+        this.setData({
+          availableRooms: res.result.data || []
+        })
+      }
+    } catch (err) {
+      console.error('获取房间列表失败:', err)
+    }
+  },
+
   onLoad() {
     const player_id = wx.getStorageSync('player_id')
     const nickname = wx.getStorageSync('nickname')
@@ -296,10 +334,22 @@ Page({
       player_id,
       nickname
     })
+
+    // 获取可用房间列表
+    this.getAvailableRooms()
+    // 每5秒刷新一次房间列表（未加入房间时）
+    this.roomListPolling = setInterval(() => {
+      if (!this.data.room_id) {
+        this.getAvailableRooms()
+      }
+    }, 5000)
   },
 
   onUnload() {
     this.stopPolling()
+    if (this.roomListPolling) {
+      clearInterval(this.roomListPolling)
+    }
   }
 })
 

@@ -45,6 +45,22 @@ async function startBP(event) {
   
   const room = roomRes.data
   
+  // 如果房间已经有BP记录，直接返回现有的
+  if (room.bp_id) {
+    const bpRes = await db.collection('bp_records').doc(room.bp_id).get()
+    if (bpRes.data) {
+      return {
+        code: 0,
+        message: 'BP 已存在',
+        data: {
+          bp_id: room.bp_id,
+          maps: MAP_POOL,
+          next_action: getBPAction(bpRes.data.current_step)
+        }
+      }
+    }
+  }
+  
   if (room.status !== 'matching') {
     return { code: 1005, message: '房间状态错误，需先完成匹配', data: null }
   }
@@ -59,6 +75,7 @@ async function startBP(event) {
       final_map: null,
       status: 'in_progress',
       current_step: 0,
+      current_votes: {}, // 当前投票记录 { player_id: map }
       created_at: db.serverDate()
     }
   })
@@ -83,9 +100,9 @@ async function startBP(event) {
   }
 }
 
-// 执行 BP 操作
+// 执行 BP 操作（投票）
 async function doBP(event) {
-  const { bp_id, team, map, bp_action } = event
+  const { bp_id, team, map, bp_action, player_id } = event
   
   const bpRes = await db.collection('bp_records').doc(bp_id).get()
   if (!bpRes.data) {
@@ -113,16 +130,67 @@ async function doBP(event) {
     }
   }
   
-  // 记录 BP 操作
+  // 获取房间信息，验证玩家权限
+  const roomRes = await db.collection('rooms').doc(bp.room_id).get()
+  const room = roomRes.data
+  
+  const teamPlayers = team === 'A' ? room.teamA : room.teamB
+  if (!teamPlayers.includes(player_id)) {
+    return { 
+      code: 1006, 
+      message: '您不在当前操作的队伍中',
+      data: null 
+    }
+  }
+  
+  // 投票机制
+  const currentVotes = bp.current_votes || {}
+  currentVotes[player_id] = map
+  
+  // 统计投票结果
+  const voteCounts = {}
+  Object.values(currentVotes).forEach(m => {
+    voteCounts[m] = (voteCounts[m] || 0) + 1
+  })
+  
+  // 计算需要的票数（队伍人数的一半以上）
+  const requiredVotes = Math.ceil(teamPlayers.length / 2)
+  const maxVotes = Math.max(...Object.values(voteCounts))
+  const selectedMap = Object.keys(voteCounts).find(m => voteCounts[m] === maxVotes)
+  
+  // 更新投票记录
+  await db.collection('bp_records').doc(bp_id).update({
+    data: {
+      current_votes: currentVotes,
+      updated_at: db.serverDate()
+    }
+  })
+  
+  // 检查是否达到所需票数
+  if (maxVotes < requiredVotes) {
+    return {
+      code: 0,
+      message: `已投票 ${map}，当前进度：${maxVotes}/${requiredVotes}`,
+      data: {
+        votes: currentVotes,
+        vote_counts: voteCounts,
+        required_votes: requiredVotes,
+        waiting_for_votes: true
+      }
+    }
+  }
+  
+  // 达到所需票数，执行BP
   const newHistory = [...bp.bp_history, {
     team: team,
     action: bp_action,
-    map: map,
+    map: selectedMap,
+    votes: voteCounts,
     timestamp: new Date()
   }]
   
   // 从可用地图中移除
-  const newAvailableMaps = bp.available_maps.filter(m => m !== map)
+  const newAvailableMaps = bp.available_maps.filter(m => m !== selectedMap)
   const newStep = bp.current_step + 1
   
   // 检查是否完成 BP
@@ -132,7 +200,7 @@ async function doBP(event) {
   // BP 流程：A Ban -> B Ban -> A Ban -> B Ban -> A Pick -> B Pick -> 剩余1张
   // 简化流程：A Ban -> B Ban -> A Pick (剩余地图作为比赛地图)
   if (newStep >= 3 || newAvailableMaps.length === 1) {
-    finalMap = bp_action === 'pick' ? map : newAvailableMaps[0]
+    finalMap = bp_action === 'pick' ? selectedMap : newAvailableMaps[0]
     status = 'completed'
     
     // 创建比赛记录
@@ -163,12 +231,13 @@ async function doBP(event) {
     })
   }
   
-  // 更新 BP 记录
+  // 更新 BP 记录（清空投票）
   await db.collection('bp_records').doc(bp_id).update({
     data: {
       bp_history: newHistory,
       available_maps: newAvailableMaps,
       current_step: newStep,
+      current_votes: {}, // 清空投票
       final_map: finalMap,
       status: status,
       updated_at: db.serverDate()
@@ -177,12 +246,13 @@ async function doBP(event) {
   
   return {
     code: 0,
-    message: bp_action === 'ban' ? `${team} 队 Ban 掉 ${map}` : `${team} 队 Pick ${map}`,
+    message: bp_action === 'ban' ? `${team} 队 Ban 掉 ${selectedMap}` : `${team} 队 Pick ${selectedMap}`,
     data: {
       available_maps: newAvailableMaps,
       final_map: finalMap,
       completed: status === 'completed',
-      next_action: status === 'in_progress' ? getBPAction(newStep) : null
+      next_action: status === 'in_progress' ? getBPAction(newStep) : null,
+      selected_map: selectedMap
     }
   }
 }
@@ -191,6 +261,7 @@ async function doBP(event) {
 async function getBPStatus(event) {
   const { bp_id } = event
   
+  // 使用 get() 而不是缓存，确保获取最新数据
   const bpRes = await db.collection('bp_records').doc(bp_id).get()
   if (!bpRes.data) {
     return { code: 1003, message: 'BP 记录不存在', data: null }
@@ -198,12 +269,17 @@ async function getBPStatus(event) {
   
   const bp = bpRes.data
   
+  // 添加服务器时间戳用于调试
+  const serverTime = new Date().toISOString()
+  
   return {
     code: 0,
     message: '获取成功',
     data: {
       ...bp,
-      next_action: bp.status === 'in_progress' ? getBPAction(bp.current_step) : null
+      next_action: bp.status === 'in_progress' ? getBPAction(bp.current_step) : null,
+      server_time: serverTime, // 用于验证数据新鲜度
+      _id: bp._id // 确保包含ID
     }
   }
 }

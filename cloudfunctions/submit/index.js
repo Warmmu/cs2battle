@@ -8,9 +8,15 @@ const db = cloud.database()
 const _ = db.command
 
 exports.main = async (event, context) => {
-  const { match_id, score_a, score_b, player_stats } = event
+  const { action, match_id, score_a, score_b, player_stats } = event
   
   try {
+    // 如果是实时更新数据（不提交）
+    if (action === 'updateData') {
+      return await updateMatchData(match_id, score_a, score_b, player_stats)
+    }
+    
+    // 否则是最终提交
     // 获取比赛信息
     const matchRes = await db.collection('matches').doc(match_id).get()
     if (!matchRes.data) {
@@ -177,6 +183,46 @@ exports.main = async (event, context) => {
     return {
       code: 9999,
       message: '提交失败：' + err.message,
+      data: null
+    }
+  }
+}
+
+/**
+ * 实时更新比赛数据（不计算ELO，只保存数据）
+ */
+async function updateMatchData(match_id, score_a, score_b, player_stats) {
+  try {
+    const updateData = {
+      updated_at: db.serverDate()
+    }
+    
+    if (score_a !== undefined) {
+      updateData.score_a = score_a
+    }
+    
+    if (score_b !== undefined) {
+      updateData.score_b = score_b
+    }
+    
+    if (player_stats && player_stats.length > 0) {
+      updateData.player_stats = player_stats
+    }
+    
+    await db.collection('matches').doc(match_id).update({
+      data: updateData
+    })
+    
+    return {
+      code: 0,
+      message: '数据已更新',
+      data: { match_id }
+    }
+  } catch (err) {
+    console.error(err)
+    return {
+      code: 9999,
+      message: '更新失败：' + err.message,
       data: null
     }
   }

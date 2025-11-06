@@ -2,9 +2,18 @@
 <view class="container">
   <view class="header">
     <text class="title">地图 Ban/Pick</text>
+    <view class="player-team">
+      <text class="my-team">您在 {{myTeam}} 队</text>
+    </view>
     <view class="current-action" wx:if="{{nextAction}}">
       <text class="action-team">{{nextAction.team}} 队</text>
       <text class="action-type">{{nextAction.action === 'ban' ? 'Ban 地图' : 'Pick 地图'}}</text>
+      <text class="vote-status" wx:if="{{canVote && voteProgress}}">投票: {{voteProgress}}</text>
+    </view>
+    <!-- 调试信息 -->
+    <view class="debug-info">
+      <text class="debug-text">{{debugInfo}}</text>
+      <text class="debug-time">{{lastUpdateTime}}</text>
     </view>
   </view>
 
@@ -44,13 +53,17 @@
     <text class="history-title">BP 记录</text>
     <view class="history-list">
       <view 
-        class="history-item {{item.action === 'ban' ? 'ban' : 'pick'}}" 
+        class="history-item {{record.action === 'ban' ? 'ban' : 'pick'}}" 
         wx:for="{{bpHistory}}" 
         wx:key="index"
+        wx:for-item="record"
       >
-        <text class="history-team">{{item.team}} 队</text>
-        <text class="history-action">{{item.action === 'ban' ? 'Ban' : 'Pick'}}</text>
-        <text class="history-map">{{item.map}}</text>
+        <text class="history-team">{{record.team}} 队</text>
+        <text class="history-action">{{record.action === 'ban' ? 'Ban' : 'Pick'}}</text>
+        <text class="history-map">{{record.map}}</text>
+        <text class="history-votes" wx:if="{{record.votes && record.votes[record.map]}}">
+          ({{record.votes[record.map]}}票)
+        </text>
       </view>
     </view>
   </view>
@@ -58,7 +71,7 @@
   <!-- 地图选择 -->
   <view class="maps">
     <view 
-      class="map-item {{availableMaps.includes(item) ? '' : 'disabled'}}" 
+      class="map-item {{availableMaps.includes(item) ? '' : 'disabled'}} {{canVote ? '' : 'not-my-turn'}}" 
       wx:for="{{['inferno', 'mirage', 'dust2', 'nuke', 'overpass', 'ancient', 'anubis']}}" 
       wx:key="index"
       data-map="{{item}}"
@@ -75,7 +88,8 @@
   </view>
 
   <view class="tips" wx:if="{{nextAction}}">
-    <text>{{nextAction.desc}}</text>
+    <text wx:if="{{canVote}}">请队内投票选择地图（需要{{myTeam}}队半数以上同意）</text>
+    <text wx:else>{{nextAction.desc}} - 等待对方队伍操作</text>
   </view>
 </view>
 

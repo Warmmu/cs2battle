@@ -3,6 +3,10 @@
   <view class="header">
     <text class="title">录入比赛结果</text>
     <text class="map" wx:if="{{match}}">地图: {{match.map}}</text>
+    <view class="sync-status">
+      <text class="sync-text">实时同步中</text>
+      <text class="sync-time" wx:if="{{lastUpdateTime}}">{{lastUpdateTime}}</text>
+    </view>
   </view>
 
   <!-- 比分输入 -->
@@ -44,9 +48,10 @@
         class="player-stat" 
         wx:for="{{teamAPlayers}}" 
         wx:key="player_id"
+        wx:for-item="player"
       >
         <text class="player-name">
-          {{item.nickname}}
+          {{player.nickname}}
         </text>
         <view class="stat-inputs">
           <view class="stat-input-item">
@@ -55,7 +60,8 @@
               class="stat-value" 
               type="number" 
               placeholder="0"
-              data-player-id="{{item.player_id}}"
+              value="{{player.kills}}"
+              data-player-id="{{player.player_id}}"
               data-type="kills"
               bindinput="onStatInput"
             />
@@ -66,7 +72,8 @@
               class="stat-value" 
               type="number" 
               placeholder="0"
-              data-player-id="{{item.player_id}}"
+              value="{{player.deaths}}"
+              data-player-id="{{player.player_id}}"
               data-type="deaths"
               bindinput="onStatInput"
             />
@@ -77,7 +84,8 @@
               class="stat-value" 
               type="number" 
               placeholder="0"
-              data-player-id="{{item.player_id}}"
+              value="{{player.assists}}"
+              data-player-id="{{player.player_id}}"
               data-type="assists"
               bindinput="onStatInput"
             />
@@ -93,9 +101,10 @@
         class="player-stat" 
         wx:for="{{teamBPlayers}}" 
         wx:key="player_id"
+        wx:for-item="player"
       >
         <text class="player-name">
-          {{item.nickname}}
+          {{player.nickname}}
         </text>
         <view class="stat-inputs">
           <view class="stat-input-item">
@@ -104,7 +113,8 @@
               class="stat-value" 
               type="number" 
               placeholder="0"
-              data-player-id="{{item.player_id}}"
+              value="{{player.kills}}"
+              data-player-id="{{player.player_id}}"
               data-type="kills"
               bindinput="onStatInput"
             />
@@ -115,7 +125,8 @@
               class="stat-value" 
               type="number" 
               placeholder="0"
-              data-player-id="{{item.player_id}}"
+              value="{{player.deaths}}"
+              data-player-id="{{player.player_id}}"
               data-type="deaths"
               bindinput="onStatInput"
             />
@@ -126,7 +137,8 @@
               class="stat-value" 
               type="number" 
               placeholder="0"
-              data-player-id="{{item.player_id}}"
+              value="{{player.assists}}"
+              data-player-id="{{player.player_id}}"
               data-type="assists"
               bindinput="onStatInput"
             />

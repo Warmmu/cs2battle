@@ -49,11 +49,90 @@
 .main {
   background: #fff;
   border-radius: 20rpx;
-  padding: 80rpx 40rpx;
+  padding: 40rpx;
+}
+
+.room-info-card {
+  margin-bottom: 40rpx;
+}
+
+.info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+  padding-bottom: 15rpx;
+  border-bottom: 1px solid #eee;
+}
+
+.info-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.info-count {
+  font-size: 24rpx;
+  color: #667eea;
+}
+
+.room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15rpx;
+}
+
+.room-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  border: 2rpx solid #e0e0e0;
+}
+
+.room-status {
+  flex: 1;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 5rpx 15rpx;
+  border-radius: 15rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+}
+
+.status-badge.waiting {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.status-badge.ready {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
+.room-players {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.player-icon {
+  font-size: 28rpx;
+}
+
+.player-count {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #333;
 }
 
 .empty {
   text-align: center;
+  padding: 40rpx 0;
 }
 
 .empty-icon {

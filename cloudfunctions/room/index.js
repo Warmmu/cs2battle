@@ -18,6 +18,8 @@ exports.main = async (event, context) => {
         return await setReady(event)
       case 'getRoomStatus':
         return await getRoomStatus(event)
+      case 'getAvailableRooms':
+        return await getAvailableRooms(event)
       case 'leave':
         return await leaveRoom(event)
       default:
@@ -132,8 +134,8 @@ async function setReady(event) {
   
   room.players[playerIndex].ready = ready
   
-  // 检查是否所有人都准备好了（单人测试模式：1人即可）
-  const allReady = room.players.length >= 1 && room.players.every(p => p.ready)
+  // 检查是否所有人都准备好了（至少需要2人）
+  const allReady = room.players.length >= 2 && room.players.every(p => p.ready)
   
   await db.collection('rooms').doc(room_id).update({
     data: {
@@ -166,6 +168,35 @@ async function getRoomStatus(event) {
     code: 0,
     message: '获取成功',
     data: roomRes.data
+  }
+}
+
+// 获取可用房间列表
+async function getAvailableRooms(event) {
+  try {
+    const roomsRes = await db.collection('rooms').where({
+      status: _.in(['waiting', 'ready'])
+    }).orderBy('created_at', 'desc').limit(10).get()
+    
+    const rooms = roomsRes.data.map(room => ({
+      _id: room._id,
+      player_count: room.players.length,
+      status: room.status,
+      created_at: room.created_at
+    }))
+    
+    return {
+      code: 0,
+      message: '获取成功',
+      data: rooms
+    }
+  } catch (err) {
+    console.error(err)
+    return {
+      code: 9999,
+      message: '获取失败：' + err.message,
+      data: []
+    }
   }
 }
 

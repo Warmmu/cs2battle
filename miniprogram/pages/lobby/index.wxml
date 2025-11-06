@@ -12,10 +12,38 @@
   </view>
 
   <view class="main" wx:if="{{!room}}">
+    <!-- 房间信息卡片 -->
+    <view class="room-info-card" wx:if="{{availableRooms.length > 0}}">
+      <view class="info-header">
+        <text class="info-title">当前房间</text>
+        <text class="info-count">{{availableRooms.length}} 个房间等待中</text>
+      </view>
+      <view class="room-list">
+        <view class="room-card" wx:for="{{availableRooms}}" wx:key="_id">
+          <view class="room-status">
+            <text class="status-badge {{item.status === 'ready' ? 'ready' : 'waiting'}}">
+              {{item.status === 'ready' ? '准备中' : '等待中'}}
+            </text>
+          </view>
+          <view class="room-players">
+            <text class="player-icon">👥</text>
+            <text class="player-count">{{item.player_count}}/10 人</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    
     <view class="empty">
       <image class="empty-icon" src="/images/icons/home.png"></image>
-      <text class="empty-text">准备开始一场激烈的对战？</text>
-      <button class="join-btn" bindtap="onJoinRoom">加入房间</button>
+      <text class="empty-text" wx:if="{{availableRooms.length > 0}}">
+        点击加入现有房间或创建新房间
+      </text>
+      <text class="empty-text" wx:else>
+        准备开始一场激烈的对战？
+      </text>
+      <button class="join-btn" bindtap="onJoinRoom">
+        {{availableRooms.length > 0 ? '加入房间' : '创建房间'}}
+      </button>
     </view>
   </view>
 
@@ -47,14 +75,14 @@
       </button>
       
       <view class="tips">
-        <text wx:if="{{room.players.length < 1}}">
-          单人测试模式
+        <text wx:if="{{room.players.length < 2}}">
+          等待更多玩家加入（至少需要2人）
         </text>
         <text wx:elif="{{room.status === 'ready'}}">
           所有人已准备，即将开始匹配...
         </text>
         <text wx:else>
-          等待所有玩家准备（单人测试模式已启用）
+          等待所有玩家准备
         </text>
       </view>
     </view>
