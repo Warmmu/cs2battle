@@ -1,0 +1,143 @@
+<!--比赛结果录入页面-->
+<view class="container">
+  <view class="header">
+    <text class="title">录入比赛结果</text>
+    <text class="map" wx:if="{{match}}">地图: {{match.map}}</text>
+  </view>
+
+  <!-- 比分输入 -->
+  <view class="score-section">
+    <text class="section-title">比分</text>
+    <view class="score-input">
+      <view class="score-item">
+        <text class="team-label">A 队</text>
+        <input 
+          class="score-value" 
+          type="number" 
+          value="{{scoreA}}" 
+          bindinput="onScoreAChange"
+          placeholder="0"
+        />
+      </view>
+      <text class="separator">:</text>
+      <view class="score-item">
+        <text class="team-label">B 队</text>
+        <input 
+          class="score-value" 
+          type="number" 
+          value="{{scoreB}}" 
+          bindinput="onScoreBChange"
+          placeholder="0"
+        />
+      </view>
+    </view>
+  </view>
+
+  <!-- 玩家数据录入 -->
+  <view class="stats-section" wx:if="{{room && match}}">
+    <text class="section-title">玩家数据</text>
+    
+    <!-- A 队 -->
+    <view class="team-stats">
+      <text class="team-name">A 队</text>
+      <view 
+        class="player-stat" 
+        wx:for="{{teamAPlayers}}" 
+        wx:key="player_id"
+      >
+        <text class="player-name">
+          {{item.nickname}}
+        </text>
+        <view class="stat-inputs">
+          <view class="stat-input-item">
+            <text class="stat-label">K</text>
+            <input 
+              class="stat-value" 
+              type="number" 
+              placeholder="0"
+              data-player-id="{{item.player_id}}"
+              data-type="kills"
+              bindinput="onStatInput"
+            />
+          </view>
+          <view class="stat-input-item">
+            <text class="stat-label">D</text>
+            <input 
+              class="stat-value" 
+              type="number" 
+              placeholder="0"
+              data-player-id="{{item.player_id}}"
+              data-type="deaths"
+              bindinput="onStatInput"
+            />
+          </view>
+          <view class="stat-input-item">
+            <text class="stat-label">A</text>
+            <input 
+              class="stat-value" 
+              type="number" 
+              placeholder="0"
+              data-player-id="{{item.player_id}}"
+              data-type="assists"
+              bindinput="onStatInput"
+            />
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- B 队 -->
+    <view class="team-stats">
+      <text class="team-name">B 队</text>
+      <view 
+        class="player-stat" 
+        wx:for="{{teamBPlayers}}" 
+        wx:key="player_id"
+      >
+        <text class="player-name">
+          {{item.nickname}}
+        </text>
+        <view class="stat-inputs">
+          <view class="stat-input-item">
+            <text class="stat-label">K</text>
+            <input 
+              class="stat-value" 
+              type="number" 
+              placeholder="0"
+              data-player-id="{{item.player_id}}"
+              data-type="kills"
+              bindinput="onStatInput"
+            />
+          </view>
+          <view class="stat-input-item">
+            <text class="stat-label">D</text>
+            <input 
+              class="stat-value" 
+              type="number" 
+              placeholder="0"
+              data-player-id="{{item.player_id}}"
+              data-type="deaths"
+              bindinput="onStatInput"
+            />
+          </view>
+          <view class="stat-input-item">
+            <text class="stat-label">A</text>
+            <input 
+              class="stat-value" 
+              type="number" 
+              placeholder="0"
+              data-player-id="{{item.player_id}}"
+              data-type="assists"
+              bindinput="onStatInput"
+            />
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <button class="submit-btn" bindtap="onSubmit">
+    提交结果
+  </button>
+</view>
+

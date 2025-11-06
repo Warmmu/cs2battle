@@ -1,0 +1,43 @@
+<!--排行榜页面-->
+<view class="container">
+  <view class="header">
+    <text class="title">排行榜</text>
+    <button class="refresh-btn" bindtap="onRefresh">刷新</button>
+  </view>
+
+  <view class="ranking" wx:if="{{ranking.length > 0}}">
+    <view 
+      class="rank-item {{item.player_id === player_id ? 'self' : ''}}" 
+      wx:for="{{ranking}}" 
+      wx:key="player_id"
+    >
+      <view class="rank-badge {{item.rank <= 3 ? 'top' + item.rank : ''}}">
+        <text>{{item.rank}}</text>
+      </view>
+
+      <view class="player-info">
+        <text class="player-name">{{item.nickname}}</text>
+        <view class="player-stats">
+          <text class="stat">{{item.total_matches}}场</text>
+          <text class="stat">胜率 {{item.win_rate}}%</text>
+          <text class="stat">KD {{item.kd_ratio}}</text>
+        </view>
+      </view>
+
+      <view class="elo-section">
+        <text class="elo-value">{{item.elo}}</text>
+        <text class="elo-label">ELO</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{ranking.length === 0 && !loading}}">
+    <image class="empty-icon" src="/images/icons/home.png"></image>
+    <text class="empty-text">暂无排行数据</text>
+  </view>
+
+  <view class="loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+</view>
+

@@ -1,0 +1,63 @@
+<!--大厅页面-->
+<view class="container">
+  <view class="header">
+    <view class="user-info">
+      <text class="welcome">欢迎, {{nickname}}</text>
+      <button class="logout-btn" bindtap="onLogout">退出</button>
+    </view>
+    <view class="actions">
+      <button class="action-btn" bindtap="onViewHistory">战绩</button>
+      <button class="action-btn" bindtap="onViewRanking">排行榜</button>
+    </view>
+  </view>
+
+  <view class="main" wx:if="{{!room}}">
+    <view class="empty">
+      <image class="empty-icon" src="/images/icons/home.png"></image>
+      <text class="empty-text">准备开始一场激烈的对战？</text>
+      <button class="join-btn" bindtap="onJoinRoom">加入房间</button>
+    </view>
+  </view>
+
+  <view class="room" wx:else>
+    <view class="room-header">
+      <text class="room-title">房间 ({{room.players.length}}/10)</text>
+      <button class="leave-btn" bindtap="onLeaveRoom">离开</button>
+    </view>
+
+    <view class="players">
+      <view 
+        class="player-item {{item.ready ? 'ready' : ''}}" 
+        wx:for="{{room.players}}" 
+        wx:key="player_id"
+      >
+        <view class="player-info">
+          <text class="player-name">{{item.nickname}}</text>
+          <text class="player-elo">ELO: {{item.elo}}</text>
+        </view>
+        <view class="player-status">
+          <text class="status-text">{{item.ready ? '✓ 已准备' : '未准备'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="room-footer">
+      <button class="ready-btn" bindtap="onReady">
+        {{currentPlayerReady ? '取消准备' : '准备'}}
+      </button>
+      
+      <view class="tips">
+        <text wx:if="{{room.players.length < 1}}">
+          单人测试模式
+        </text>
+        <text wx:elif="{{room.status === 'ready'}}">
+          所有人已准备，即将开始匹配...
+        </text>
+        <text wx:else>
+          等待所有玩家准备（单人测试模式已启用）
+        </text>
+      </view>
+    </view>
+  </view>
+</view>
+
