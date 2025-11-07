@@ -1,213 +1,145 @@
-# CS2 内战匹配系统 - Web版本
+# CS2 内战匹配系统
 
-一个基于 Node.js + Express + MongoDB 的 CS2 内战匹配系统网页版，支持玩家注册、ELO 匹配、地图 BP、比赛记录等功能。
+基于 FastAPI + JSON 文件存储的 CS2 内战匹配系统，无需数据库，开箱即用。
 
-## 🎯 功能特性
+## ✨ 特性
 
-- ✅ 玩家注册与登录
-- ✅ 退出登录功能
-- ✅ 房间系统（自动匹配）
-- ✅ ELO 平衡算法分队
-- ✅ 地图 Ban/Pick 系统
-- ✅ 比赛结果录入
-- ✅ 自动 ELO 计算
-- ✅ 历史战绩查询
-- ✅ 排行榜系统
+- 🎮 完整的 CS2 匹配流程：房间 → 匹配 → BP → 对战 → ELO 计算
+- ⚖️ ELO 平衡算法自动分队
+- 🗺️ 完整的 Ban/Pick 地图选择流程
+- 📊 玩家战绩统计和排行榜
+- 💾 无需数据库，使用 JSON 文件存储
+- 🚀 一键启动，自动配置虚拟环境
+
+## 📦 系统要求
+
+- **Python 3.8+** （必需）
+- Windows / Linux / MacOS
+
+## 🚀 快速开始
+
+### Windows
+
+双击运行 `start.bat`，脚本会自动：
+1. 检查 Python 环境
+2. 创建虚拟环境
+3. 安装依赖包
+4. 启动服务器
+
+### Linux / MacOS
+
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+### 首次运行
+
+首次运行时，脚本会自动：
+- 创建 Python 虚拟环境（`backend_py/venv/`）
+- 安装所有依赖包（FastAPI、uvicorn 等）
+- 初始化数据存储目录（`backend_py/data/`）
+
+这个过程可能需要 1-3 分钟，请耐心等待。
+
+## 🌐 访问系统
+
+启动成功后，在浏览器访问：
+
+- **前端页面**: http://localhost:3000
+- **API 文档**: http://localhost:3000/docs
+- **健康检查**: http://localhost:3000/api/health
 
 ## 📁 项目结构
 
 ```
-htmlversion/
-├── backend/                # 后端服务
-│   ├── server.js          # Express 服务器
-│   ├── db.js              # 数据库连接
-│   ├── routes/            # API 路由
-│   │   ├── auth.js        # 登录/注册
-│   │   ├── room.js        # 房间管理
-│   │   ├── match.js       # 匹配分队
-│   │   ├── bp.js          # 地图BP
-│   │   ├── submit.js      # 提交结果
-│   │   └── history.js     # 历史记录
-│   └── package.json
+cs2battle/
+├── backend_py/              # Python 后端
+│   ├── main.py             # 主应用
+│   ├── requirements.txt    # Python 依赖
+│   ├── routers/            # API 路由
+│   │   ├── auth.py        # 认证接口
+│   │   ├── room.py        # 房间管理
+│   │   ├── match.py       # 匹配分队
+│   │   ├── bp.py          # Ban/Pick
+│   │   ├── submit.py      # 结果提交
+│   │   └── history.py     # 历史记录
+│   ├── utils/             # 工具函数
+│   │   └── storage.py     # JSON 存储
+│   ├── data/              # 数据文件（自动创建）
+│   └── venv/              # 虚拟环境（自动创建）
 ├── frontend/              # 前端页面
-│   ├── index.html         # 登录页面
-│   ├── register.html      # 注册页面
-│   ├── lobby.html         # 大厅页面
-│   ├── bp.html           # BP页面
-│   ├── match.html        # 比赛录入页面
-│   ├── history.html      # 历史战绩
-│   ├── ranking.html      # 排行榜
-│   ├── css/
-│   │   └── style.css     # 全局样式
-│   └── js/
-│       ├── api.js        # API 调用封装
-│       └── utils.js      # 工具函数
-└── README.md
+│   ├── index.html        # 首页
+│   ├── lobby.html        # 大厅
+│   ├── bp.html           # BP 页面
+│   ├── match.html        # 对战页面
+│   └── ranking.html      # 排行榜
+├── start.bat             # Windows 启动脚本
+└── start.sh              # Linux/Mac 启动脚本
 ```
-
-## 🚀 快速开始
-
-### 1. 前置要求
-
-- Node.js (v14+)
-- MongoDB (v4.4+)
-
-### 2. 安装步骤
-
-1. 安装后端依赖：
-```bash
-cd backend
-npm install
-```
-
-2. 配置 MongoDB 连接：
-编辑 `backend/db.js` 中的数据库连接字符串
-
-3. 启动后端服务：
-```bash
-cd backend
-npm start
-```
-
-4. 访问前端页面：
-直接用浏览器打开 `frontend/index.html` 或使用本地服务器
-
-### 3. 数据库配置
-
-MongoDB 会自动创建以下集合：
-
-- `players` - 玩家表
-- `rooms` - 房间表
-- `bp_records` - BP 记录表
-- `matches` - 比赛表
-- `player_stats` - 玩家统计表
-- `elo_history` - ELO 历史表
 
 ## 🎮 使用流程
 
-### 账号管理
-1. **首次使用** - 进入登录页面，点击"立即注册"
-2. **注册账号** - 输入昵称（可选 Steam ID）
-3. **登录** - 已有账号可直接通过昵称登录
-4. **退出登录** - 在大厅页面点击"退出"按钮
+1. **注册/登录** - 输入昵称即可
+2. **加入房间** - 自动匹配或创建房间
+3. **准备就绪** - 所有玩家点击准备
+4. **自动分队** - ELO 平衡算法自动分队
+5. **Ban/Pick** - 队伍投票选择地图
+6. **开始对战** - 进入游戏
+7. **提交结果** - 录入比分和数据
+8. **ELO 更新** - 自动计算并更新 ELO
 
-### 游戏流程
-1. **加入房间** - 自动加入或创建房间
-2. **准备** - 等待所有玩家准备
-3. **匹配** - 系统自动根据 ELO 平衡分队
-4. **BP 地图** - A Ban → B Ban → A Pick
-5. **比赛** - 进行游戏
-6. **录入结果** - 输入比分和每位玩家的 KD
-7. **计算 ELO** - 系统自动计算并更新 ELO
-8. **查看战绩** - 查看个人历史和排行榜
+## 📊 数据存储
 
-## 📊 ELO 计算公式
+所有数据保存在 `backend_py/data/` 目录下的 JSON 文件中：
 
+- `players.json` - 玩家信息
+- `rooms.json` - 房间数据
+- `matches.json` - 比赛记录
+- `bp_records.json` - BP 记录
+- `player_stats.json` - 玩家统计
+- `elo_history.json` - ELO 历史
+
+## 🔧 开发
+
+### 手动启动（开发模式）
+
+```bash
+cd backend_py
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python main.py
 ```
-期望胜率: P = 1 / (1 + 10^((对方ELO - 己方ELO) / 400))
-ELO变化: ΔElo = K × (实际得分 - 期望得分)
 
-K 因子:
-- ELO < 1200: K = 40 (新手变化快)
-- 1200 ≤ ELO ≤ 1800: K = 32 (正常)
-- ELO > 1800: K = 24 (高手变化慢)
+### API 文档
 
-KD 修正:
-- KD > 1.5: 额外 20% 加成
-- KD < 0.8: 减少 20%
+访问 http://localhost:3000/docs 查看交互式 API 文档（Swagger UI）
+
+## ❓ 常见问题
+
+### Q: 提示 Python 未找到？
+A: 访问 https://python.org 下载安装 Python 3.8+，安装时勾选 "Add Python to PATH"
+
+### Q: 安装依赖失败？
+A: 检查网络连接，或使用国内镜像：
+```bash
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
-## 🗺️ 地图池
+### Q: 端口 3000 被占用？
+A: 修改 `backend_py/main.py` 中的 `port=3000` 为其他端口
 
-当前支持的官方地图：
-- Inferno
-- Mirage
-- Dust2
-- Nuke
-- Overpass
-- Ancient
-- Anubis
+### Q: 如何备份数据？
+A: 复制整个 `backend_py/data/` 目录即可
 
-### BP流程
-- **A队 Ban** → **B队 Ban** → **A队 Pick**
-- **队内投票制**：需要队伍半数以上同意
-- **实时同步**：所有玩家每2秒自动同步BP状态
-- **权限控制**：只有当前轮到的队伍成员可以投票
+### Q: 如何重置数据？
+A: 删除 `backend_py/data/` 目录，重新启动服务器会自动创建空数据文件
 
-## 🔧 技术栈
-
-- **前端**: HTML5 + CSS3 + JavaScript (原生)
-- **后端**: Node.js + Express
-- **数据库**: MongoDB
-- **算法**: ELO 评分系统
-
-## 📝 API 文档
-
-### 认证接口
-
-#### POST /api/auth/register
-注册新玩家
-
-#### POST /api/auth/login
-玩家登录
-
-### 房间接口
-
-#### POST /api/room/join
-加入/创建房间
-
-#### POST /api/room/ready
-设置准备状态
-
-#### GET /api/room/:roomId
-获取房间状态
-
-#### GET /api/room/available
-获取可用房间列表
-
-#### POST /api/room/leave
-离开房间
-
-### 匹配接口
-
-#### POST /api/match/start
-开始匹配分队
-
-### BP接口
-
-#### POST /api/bp/start
-开始BP
-
-#### POST /api/bp/vote
-BP投票
-
-#### GET /api/bp/:bpId
-获取BP状态
-
-### 比赛接口
-
-#### POST /api/submit/update
-更新比赛数据
-
-#### POST /api/submit/finish
-提交比赛结果
-
-#### GET /api/match/:roomId
-获取比赛信息
-
-### 历史/排行榜
-
-#### GET /api/history/:playerId
-获取玩家历史战绩
-
-#### GET /api/ranking
-获取排行榜
-
-## 📄 License
+## 📝 License
 
 MIT License
 
-## 👥 贡献
+## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！
-

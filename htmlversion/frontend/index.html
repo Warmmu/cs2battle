@@ -3,33 +3,144 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>登录 - CS2 内战匹配系统</title>
+  <title>快速加入 - CS2 内战匹配系统</title>
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    .quick-join-container {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    
+    .quick-join-card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 800px;
+      width: 100%;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      animation: scaleIn 0.5s ease-out;
+    }
+    
+    .user-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 15px;
+      margin: 30px 0;
+    }
+    
+    .user-card {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      color: white;
+      padding: 25px 15px;
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      animation: fadeIn 0.4s ease-out;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .user-card:hover {
+      transform: translateY(-5px) scale(1.05);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+    
+    .user-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+      transform: rotate(45deg);
+      transition: all 0.5s;
+    }
+    
+    .user-card:hover::before {
+      left: 100%;
+    }
+    
+    .user-avatar {
+      width: 60px;
+      height: 60px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      margin: 0 auto 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: bold;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .user-name {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .user-elo {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .register-card {
+      background: var(--gray-100);
+      color: var(--gray-700);
+      border: 2px dashed var(--gray-400);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      position: relative;
+    }
+    
+    .register-card:hover {
+      background: var(--gray-200);
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+    
+    .register-text {
+      font-size: 14px;
+      margin-top: 10px;
+      font-weight: 600;
+    }
+    
+    .no-users {
+      text-align: center;
+      padding: 40px;
+      color: var(--gray-500);
+    }
+    
+    @media (max-width: 600px) {
+      .user-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      }
+      
+      .user-avatar {
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="auth-container">
-    <div class="auth-card">
+  <div class="quick-join-container">
+    <div class="quick-join-card">
       <h1 class="auth-title">CS2 BP系统</h1>
-      <p class="auth-subtitle">登录账号</p>
+      <p class="auth-subtitle">选择玩家快速加入</p>
       
-      <form id="loginForm">
-        <div class="form-group">
-          <label class="form-label">昵称</label>
-          <input 
-            type="text" 
-            class="form-input" 
-            id="nickname" 
-            placeholder="请输入您的昵称"
-            required
-          >
-        </div>
-        
-        <button type="submit" class="btn btn-primary btn-block">登录</button>
-      </form>
-      
-      <div class="auth-link">
-        还没有账号？<a href="register.html">立即注册</a>
-      </div>
+      <div id="userList" class="user-grid"></div>
     </div>
   </div>
   
@@ -42,46 +153,78 @@
       navigate('lobby.html');
     }
     
-    // 登录表单提交
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
+    // 加载用户列表
+    function loadUserList() {
+      const db = localDB.getDB();
+      const userList = document.getElementById('userList');
       
-      const nickname = document.getElementById('nickname').value.trim();
-      
-      if (!nickname) {
-        showToast('请输入昵称', 'error');
+      if (!db || !db.players || db.players.length === 0) {
+        userList.innerHTML = `
+          <div class="no-users" style="grid-column: 1 / -1;">
+            <p style="font-size: 18px; margin-bottom: 20px;">😊 还没有玩家</p>
+            <button class="btn btn-primary" onclick="navigate('register.html')">
+              立即注册第一个账号
+            </button>
+          </div>
+        `;
         return;
       }
       
+      // 按ELO降序排列
+      const sortedPlayers = [...db.players].sort((a, b) => (b.elo || 1000) - (a.elo || 1000));
+      
+      let html = '';
+      
+      // 显示玩家卡片
+      sortedPlayers.forEach((player, index) => {
+        const firstLetter = player.nickname.charAt(0).toUpperCase();
+        html += `
+          <div class="user-card" onclick="quickLogin('${player._id}')" style="animation-delay: ${index * 0.05}s">
+            <div class="user-avatar">${firstLetter}</div>
+            <div class="user-name">${player.nickname}</div>
+            <div class="user-elo">ELO: ${player.elo || 1000}</div>
+          </div>
+        `;
+      });
+      
+      // 添加注册新账号的卡片
+      html += `
+        <div class="user-card register-card" onclick="navigate('register.html')" style="animation-delay: ${sortedPlayers.length * 0.05}s">
+          <div>➕</div>
+          <div class="register-text">注册新账号</div>
+        </div>
+      `;
+      
+      userList.innerHTML = html;
+    }
+    
+    // 快速登录
+    async function quickLogin(playerId) {
       showLoading('登录中...');
       
-      const result = await API.auth.login(nickname);
+      // 获取玩家信息
+      const result = await API.history.getPlayerInfo(playerId);
       
       hideLoading();
       
       if (result.code === 0) {
-        // 保存用户信息
-        User.save(result.data);
+        const player = result.data.player;
         
-        showToast('登录成功', 'success');
+        // 保存用户信息
+        User.save(player);
+        
+        showToast(`欢迎回来，${player.nickname}！`, 'success');
         
         setTimeout(() => {
           navigate('lobby.html');
-        }, 1000);
+        }, 800);
       } else {
-        if (result.code === 1001) {
-          // 昵称未注册，提示去注册
-          showConfirm(
-            '提示',
-            result.message + '，是否前往注册页面？',
-            () => navigate('register.html'),
-            null
-          );
-        } else {
-          showToast(result.message, 'error');
-        }
+        showToast('登录失败：' + result.message, 'error');
       }
-    });
+    }
+    
+    // 初始化
+    loadUserList();
   </script>
 </body>
 </html>

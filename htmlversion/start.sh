@@ -1,41 +1,67 @@
 #!/bin/bash
 
+clear
 echo "========================================"
-echo "CS2 内战匹配系统 - 启动脚本"
+echo "  CS2 Battle System - Starting"
 echo "========================================"
 echo ""
 
-# 检查 Node.js
-if ! command -v node &> /dev/null; then
-    echo "[错误] 未找到 Node.js，请先安装 Node.js"
+# 检查 Python
+echo "[Step 1/3] Checking Python..."
+if ! command -v python3 &> /dev/null; then
+    echo "[ERROR] Python not found!"
+    echo ""
+    echo "Please install Python 3.8 or higher:"
+    echo "  Ubuntu/Debian: sudo apt install python3 python3-venv python3-pip"
+    echo "  MacOS: brew install python3"
+    echo ""
     exit 1
 fi
+echo "[OK] Python installed:"
+python3 --version
+echo ""
 
-# 检查 MongoDB
-if ! command -v mongod &> /dev/null; then
-    echo "[警告] 未找到 MongoDB，请确保 MongoDB 已安装并运行"
-fi
+echo "[Step 2/3] Setting up virtual environment..."
+cd "$(dirname "$0")/backend_py"
 
-cd backend
-
-# 检查依赖
-if [ ! -d "node_modules" ]; then
+if [ ! -d "venv" ]; then
     echo ""
-    echo "首次运行，正在安装依赖..."
-    npm install
+    echo "Creating virtual environment..."
+    python3 -m venv venv
     if [ $? -ne 0 ]; then
-        echo "[错误] 依赖安装失败"
+        echo "[ERROR] Failed to create virtual environment!"
+        echo ""
         exit 1
     fi
+    echo "[OK] Virtual environment created"
 fi
 
+echo "Activating virtual environment..."
+source venv/bin/activate
+if [ $? -ne 0 ]; then
+    echo "[ERROR] Failed to activate virtual environment!"
+    echo ""
+    exit 1
+fi
+echo "[OK] Virtual environment activated"
 echo ""
-echo "启动服务器..."
+
+echo "Installing/Updating dependencies..."
+pip install -r requirements.txt --quiet
+if [ $? -ne 0 ]; then
+    echo "[WARNING] Some packages failed to install"
+    echo "Trying without cache..."
+    pip install -r requirements.txt --no-cache-dir
+fi
+echo "[OK] Dependencies ready"
+echo ""
+
+echo "[Step 3/3] Starting server..."
 echo "========================================"
-echo "访问地址: http://localhost:3000"
-echo "按 Ctrl+C 停止服务器"
+echo "  Server: http://localhost:3000"
+echo "  API Docs: http://localhost:3000/docs"
+echo "  Stop: Press Ctrl+C"
 echo "========================================"
 echo ""
 
-npm start
-
+python3 main.py
