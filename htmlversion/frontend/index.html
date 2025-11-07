@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - CS2 内战匹配系统</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-card">
+      <h1 class="auth-title">CS2 BP系统</h1>
+      <p class="auth-subtitle">登录账号</p>
+      
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label">昵称</label>
+          <input 
+            type="text" 
+            class="form-input" 
+            id="nickname" 
+            placeholder="请输入您的昵称"
+            required
+          >
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-block">登录</button>
+      </form>
+      
+      <div class="auth-link">
+        还没有账号？<a href="register.html">立即注册</a>
+      </div>
+    </div>
+  </div>
+  
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    // 检查是否已登录
+    if (User.isLoggedIn()) {
+      navigate('lobby.html');
+    }
+    
+    // 登录表单提交
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const nickname = document.getElementById('nickname').value.trim();
+      
+      if (!nickname) {
+        showToast('请输入昵称', 'error');
+        return;
+      }
+      
+      showLoading('登录中...');
+      
+      const result = await API.auth.login(nickname);
+      
+      hideLoading();
+      
+      if (result.code === 0) {
+        // 保存用户信息
+        User.save(result.data);
+        
+        showToast('登录成功', 'success');
+        
+        setTimeout(() => {
+          navigate('lobby.html');
+        }, 1000);
+      } else {
+        if (result.code === 1001) {
+          // 昵称未注册，提示去注册
+          showConfirm(
+            '提示',
+            result.message + '，是否前往注册页面？',
+            () => navigate('register.html'),
+            null
+          );
+        } else {
+          showToast(result.message, 'error');
+        }
+      }
+    });
+  </script>
+</body>
+</html>
+

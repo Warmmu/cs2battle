@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>排行榜 - CS2 内战匹配系统</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <a href="lobby.html" class="logo">CS2 BP系统</a>
+      <div class="user-info">
+        <span class="user-name" id="userName"></span>
+        <span class="user-elo" id="userElo"></span>
+        <button class="btn btn-secondary" onclick="navigate('lobby.html')">返回大厅</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="card">
+      <h2 class="card-title">排行榜 TOP 50</h2>
+      
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th>排名</th>
+            <th>玩家</th>
+            <th>ELO</th>
+            <th>场次</th>
+            <th>胜场</th>
+            <th>败场</th>
+            <th>胜率</th>
+            <th>K/D</th>
+          </tr>
+        </thead>
+        <tbody id="rankingBody">
+          <tr>
+            <td colspan="8" style="text-align: center; color: var(--gray-500);">
+              加载中...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    if (!checkLogin()) throw new Error('未登录');
+    
+    const user = User.get();
+    document.getElementById('userName').textContent = user.nickname;
+    document.getElementById('userElo').textContent = `ELO: ${user.elo || 1000}`;
+    
+    // 初始化
+    async function init() {
+      showLoading('加载中...');
+      
+      const result = await API.history.getRanking();
+      
+      hideLoading();
+      
+      if (result.code === 0) {
+        displayRanking(result.data);
+      } else {
+        showToast('获取排行榜失败', 'error');
+      }
+    }
+    
+    // 显示排行榜
+    function displayRanking(ranking) {
+      const rankingBody = document.getElementById('rankingBody');
+      
+      if (ranking.length === 0) {
+        rankingBody.innerHTML = `
+          <tr>
+            <td colspan="8" style="text-align: center; color: var(--gray-500);">
+              暂无数据
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      rankingBody.innerHTML = ranking.map(player => {
+        let rankClass = '';
+        let rankDisplay = player.rank;
+        
+        if (player.rank === 1) {
+          rankClass = 'rank-1';
+          rankDisplay = '🥇';
+        } else if (player.rank === 2) {
+          rankClass = 'rank-2';
+          rankDisplay = '🥈';
+        } else if (player.rank === 3) {
+          rankClass = 'rank-3';
+          rankDisplay = '🥉';
+        }
+        
+        // 高亮当前用户
+        const isCurrentUser = player.player_id === user.player_id;
+        const rowStyle = isCurrentUser ? 'background: rgba(102, 126, 234, 0.1);' : '';
+        
+        return `
+          <tr style="${rowStyle}">
+            <td class="${rankClass}">${rankDisplay}</td>
+            <td>
+              <strong>${player.nickname}</strong>
+              ${isCurrentUser ? '<span style="color: var(--primary-color); margin-left: 8px;">(我)</span>' : ''}
+            </td>
+            <td><strong>${player.elo}</strong></td>
+            <td>${player.total_matches}</td>
+            <td style="color: var(--success-color);">${player.wins}</td>
+            <td style="color: var(--danger-color);">${player.losses}</td>
+            <td>${player.win_rate}%</td>
+            <td>${player.kd_ratio}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+    
+    // 初始化
+    init();
+  </script>
+</body>
+</html>
+

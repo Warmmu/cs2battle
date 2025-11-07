@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>注册 - CS2 内战匹配系统</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-card">
+      <h1 class="auth-title">CS2 BP系统</h1>
+      <p class="auth-subtitle">注册新账号</p>
+      
+      <form id="registerForm">
+        <div class="form-group">
+          <label class="form-label">昵称 *</label>
+          <input 
+            type="text" 
+            class="form-input" 
+            id="nickname" 
+            placeholder="请输入您的昵称"
+            required
+          >
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Steam ID（可选）</label>
+          <input 
+            type="text" 
+            class="form-input" 
+            id="steam_id" 
+            placeholder="请输入您的 Steam ID"
+          >
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-block">注册</button>
+      </form>
+      
+      <div class="auth-link">
+        已有账号？<a href="index.html">立即登录</a>
+      </div>
+    </div>
+  </div>
+  
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    // 检查是否已登录
+    if (User.isLoggedIn()) {
+      navigate('lobby.html');
+    }
+    
+    // 注册表单提交
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const nickname = document.getElementById('nickname').value.trim();
+      const steam_id = document.getElementById('steam_id').value.trim();
+      
+      if (!nickname) {
+        showToast('请输入昵称', 'error');
+        return;
+      }
+      
+      showLoading('注册中...');
+      
+      const result = await API.auth.register(nickname, steam_id);
+      
+      hideLoading();
+      
+      if (result.code === 0) {
+        // 保存用户信息
+        User.save(result.data);
+        
+        showToast('注册成功', 'success');
+        
+        setTimeout(() => {
+          navigate('lobby.html');
+        }, 1000);
+      } else {
+        showToast(result.message, 'error');
+      }
+    });
+  </script>
+</body>
+</html>
+

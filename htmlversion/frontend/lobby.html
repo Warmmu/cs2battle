@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大厅 - CS2 内战匹配系统</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <a href="lobby.html" class="logo">CS2 BP系统</a>
+      <div class="user-info">
+        <span class="user-name" id="userName"></span>
+        <span class="user-elo" id="userElo"></span>
+        <button class="btn btn-secondary" onclick="viewHistory()">战绩</button>
+        <button class="btn btn-secondary" onclick="viewRanking()">排行榜</button>
+        <button class="btn btn-danger" onclick="logout()">退出</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="container">
+    <!-- 未加入房间时显示 -->
+    <div id="noRoomSection">
+      <div class="card">
+        <h2 class="card-title">欢迎来到 CS2 内战匹配系统</h2>
+        <button class="btn btn-primary btn-block" onclick="joinRoom()">
+          加入/创建房间
+        </button>
+      </div>
+      
+      <div class="card" id="roomListCard">
+        <h2 class="card-title">可用房间</h2>
+        <div id="roomList" class="room-list">
+          <p style="text-align: center; color: var(--gray-500);">暂无可用房间</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 已加入房间时显示 -->
+    <div id="inRoomSection" style="display: none;">
+      <div class="card">
+        <h2 class="card-title">房间信息</h2>
+        <div id="roomInfo">
+          <p>房间ID: <span id="roomId"></span></p>
+          <p>状态: <span id="roomStatus"></span></p>
+          <p>玩家数量: <span id="playerCount"></span></p>
+        </div>
+        
+        <div style="margin-top: 20px;">
+          <button class="btn btn-success" id="readyBtn" onclick="toggleReady()">准备</button>
+          <button class="btn btn-danger" onclick="leaveRoom()">离开房间</button>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h2 class="card-title">玩家列表</h2>
+        <div id="playerList" class="player-list"></div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    // 检查登录状态
+    if (!checkLogin()) {
+      throw new Error('未登录');
+    }
+    
+    let currentRoom = null;
+    let pollingTimer = null;
+    let roomListTimer = null;
+    let matchingStarted = false;
+    
+    const user = User.get();
+    document.getElementById('userName').textContent = user.nickname;
+    document.getElementById('userElo').textContent = `ELO: ${user.elo || 1000}`;
+    
+    // 加入房间
+    async function joinRoom() {
+      showLoading('加入房间中...');
+      
+      const result = await API.room.join(user.player_id);
+      
+      hideLoading();
+      
+      if (result.code === 0) {
+        currentRoom = result.data;
+        showRoomSection();
+        updateRoomInfo();
+        startPolling();
+        showToast('加入成功', 'success');
+      } else {
+        showToast(result.message, 'error');
+      }
+    }
+    
+    // 切换准备状态
+    async function toggleReady() {
+      if (!currentRoom) return;
+      
+      const currentPlayer = currentRoom.players.find(p => p.player_id === user.player_id);
+      const newReadyState = !currentPlayer.ready;
+      
+      const result = await API.room.ready(user.player_id, currentRoom._id, newReadyState);
+      
+      if (result.code === 0) {
+        showToast(newReadyState ? '已准备' : '取消准备', 'success');
+        getRoomStatus();
+      } else {
+        showToast(result.message, 'error');
+      }
+    }
+    
+    // 离开房间
+    async function leaveRoom() {
+      showConfirm('确认', '确定要离开房间吗？', async () => {
+        if (!currentRoom) return;
+        
+        await API.room.leave(user.player_id, currentRoom._id);
+        
+        stopPolling();
+        currentRoom = null;
+        matchingStarted = false;
+        showNoRoomSection();
+        showToast('已离开房间', 'success');
+        
+        // 重新开始获取房间列表
+        getAvailableRooms();
+        startRoomListPolling();
+      });
+    }
+    
+    // 开始匹配
+    async function startMatch() {
+      if (!currentRoom || matchingStarted) return;
+      
+      matchingStarted = true;
+      showLoading('匹配中...');
+      
+      const result = await API.match.start(currentRoom._id);
+      
+      hideLoading();
+      
+      if (result.code === 0) {
+        showToast('匹配成功', 'success');
+        // 等待轮询检测到 bp 状态后自动跳转
+      } else {
+        matchingStarted = false;
+        showToast(result.message, 'error');
+      }
+    }
+    
+    // 获取房间状态
+    async function getRoomStatus() {
+      if (!currentRoom) return;
+      
+      const result = await API.room.getStatus(currentRoom._id);
+      
+      if (result.code === 0) {
+        currentRoom = result.data;
+        updateRoomInfo();
+        
+        // 如果房间状态变为 matching 或 bp，跳转到 BP 页面
+        if (currentRoom.status === 'matching' || currentRoom.status === 'bp') {
+          stopPolling();
+          navigate(`bp.html?room_id=${currentRoom._id}`);
+          return;
+        }
+        
+        // 如果所有人准备好了且还没开始匹配，触发匹配
+        if (currentRoom.status === 'ready' && !matchingStarted) {
+          startMatch();
+        }
+      }
+    }
+    
+    // 更新房间信息显示
+    function updateRoomInfo() {
+      if (!currentRoom) return;
+      
+      document.getElementById('roomId').textContent = currentRoom._id;
+      document.getElementById('roomStatus').textContent = getStatusText(currentRoom.status);
+      document.getElementById('playerCount').textContent = currentRoom.players.length;
+      
+      // 更新准备按钮
+      const currentPlayer = currentRoom.players.find(p => p.player_id === user.player_id);
+      const readyBtn = document.getElementById('readyBtn');
+      if (currentPlayer && currentPlayer.ready) {
+        readyBtn.textContent = '取消准备';
+        readyBtn.className = 'btn btn-secondary';
+      } else {
+        readyBtn.textContent = '准备';
+        readyBtn.className = 'btn btn-success';
+      }
+      
+      // 更新玩家列表
+      const playerList = document.getElementById('playerList');
+      playerList.innerHTML = currentRoom.players.map(p => `
+        <div class="player-item">
+          <div>
+            <strong>${p.nickname}</strong>
+            <span style="color: var(--gray-500); margin-left: 8px;">ELO: ${p.elo}</span>
+          </div>
+          <span class="${p.ready ? 'player-ready' : 'player-not-ready'}">
+            ${p.ready ? '✓ 已准备' : '未准备'}
+          </span>
+        </div>
+      `).join('');
+    }
+    
+    // 获取可用房间列表
+    async function getAvailableRooms() {
+      const result = await API.room.getAvailable();
+      
+      if (result.code === 0 && result.data.length > 0) {
+        const roomList = document.getElementById('roomList');
+        roomList.innerHTML = result.data.map(room => `
+          <div class="room-item">
+            <div>
+              <strong>房间 ${room._id.substring(0, 8)}...</strong>
+              <span style="margin-left: 12px;">玩家: ${room.player_count}</span>
+            </div>
+            <span class="room-status ${room.status}">
+              ${getStatusText(room.status)}
+            </span>
+          </div>
+        `).join('');
+      }
+    }
+    
+    // 状态文本
+    function getStatusText(status) {
+      const statusMap = {
+        'waiting': '等待中',
+        'ready': '准备中',
+        'matching': '匹配中',
+        'bp': 'BP中',
+        'playing': '比赛中',
+        'finished': '已完成'
+      };
+      return statusMap[status] || status;
+    }
+    
+    // 显示/隐藏区域
+    function showRoomSection() {
+      document.getElementById('noRoomSection').style.display = 'none';
+      document.getElementById('inRoomSection').style.display = 'block';
+      stopRoomListPolling();
+    }
+    
+    function showNoRoomSection() {
+      document.getElementById('noRoomSection').style.display = 'block';
+      document.getElementById('inRoomSection').style.display = 'none';
+    }
+    
+    // 开始轮询
+    function startPolling() {
+      stopPolling();
+      pollingTimer = setInterval(getRoomStatus, 2000);
+    }
+    
+    function stopPolling() {
+      if (pollingTimer) {
+        clearInterval(pollingTimer);
+        pollingTimer = null;
+      }
+    }
+    
+    function startRoomListPolling() {
+      stopRoomListPolling();
+      roomListTimer = setInterval(getAvailableRooms, 5000);
+    }
+    
+    function stopRoomListPolling() {
+      if (roomListTimer) {
+        clearInterval(roomListTimer);
+        roomListTimer = null;
+      }
+    }
+    
+    // 导航功能
+    function viewHistory() {
+      navigate('history.html');
+    }
+    
+    function viewRanking() {
+      navigate('ranking.html');
+    }
+    
+    function logout() {
+      showConfirm('确认退出', '确定要退出登录吗？', async () => {
+        if (currentRoom) {
+          await API.room.leave(user.player_id, currentRoom._id);
+        }
+        
+        User.logout();
+        showToast('已退出登录', 'success');
+        
+        setTimeout(() => {
+          navigate('index.html');
+        }, 1000);
+      });
+    }
+    
+    // 页面加载时获取房间列表
+    getAvailableRooms();
+    startRoomListPolling();
+    
+    // 页面卸载时清理
+    window.addEventListener('beforeunload', () => {
+      stopPolling();
+      stopRoomListPolling();
+    });
+  </script>
+</body>
+</html>
+

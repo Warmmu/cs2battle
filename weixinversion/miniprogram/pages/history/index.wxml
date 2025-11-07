@@ -1,0 +1,77 @@
+<!--历史战绩页面-->
+<view class="container">
+  <view class="header">
+    <text class="title">我的战绩</text>
+    <text class="subtitle">共 {{total}} 场比赛</text>
+  </view>
+
+  <view class="matches" wx:if="{{matches.length > 0}}">
+    <view 
+      class="match-item {{item.won ? 'win' : 'loss'}}" 
+      wx:for="{{matches}}" 
+      wx:key="match_id"
+      data-match-id="{{item.match_id}}"
+      bindtap="onViewDetail"
+    >
+      <view class="match-header">
+        <view class="result-badge {{item.won ? 'win' : 'loss'}}">
+          <text>{{item.won ? '胜利' : '失败'}}</text>
+        </view>
+        <text class="match-date">{{item.date}}</text>
+      </view>
+
+      <view class="match-info">
+        <view class="info-row">
+          <text class="label">地图:</text>
+          <text class="value map">{{item.map}}</text>
+        </view>
+        <view class="info-row">
+          <text class="label">比分:</text>
+          <text class="value score">{{item.score}}</text>
+        </view>
+        <view class="info-row">
+          <text class="label">队伍:</text>
+          <text class="value">{{item.my_team}} 队</text>
+        </view>
+      </view>
+
+      <view class="match-stats">
+        <view class="stat-item">
+          <text class="stat-value">{{item.kills}}</text>
+          <text class="stat-label">击杀</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-value">{{item.deaths}}</text>
+          <text class="stat-label">死亡</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-value">{{item.kd_ratio}}</text>
+          <text class="stat-label">KD</text>
+        </view>
+        <view class="stat-item {{item.elo_change > 0 ? 'positive' : 'negative'}}">
+          <text class="stat-value">{{item.elo_change > 0 ? '+' : ''}}{{item.elo_change}}</text>
+          <text class="stat-label">ELO</text>
+        </view>
+      </view>
+
+      <view class="mvp-badge" wx:if="{{item.mvp}}">
+        <text>⭐ MVP</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{matches.length === 0 && !loading}}">
+    <image class="empty-icon" src="/images/icons/home.png"></image>
+    <text class="empty-text">暂无战绩记录</text>
+    <text class="empty-desc">快去开始你的第一场比赛吧！</text>
+  </view>
+
+  <view class="loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <view class="no-more" wx:if="{{!hasMore && matches.length > 0}}">
+    <text>没有更多了</text>
+  </view>
+</view>
+

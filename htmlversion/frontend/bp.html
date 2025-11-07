@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>地图BP - CS2 内战匹配系统</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <a href="lobby.html" class="logo">CS2 BP系统</a>
+      <div class="user-info">
+        <span class="user-name" id="userName"></span>
+        <span class="user-elo" id="userElo"></span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="card">
+      <h2 class="card-title">地图 Ban/Pick</h2>
+      
+      <div id="bpStatus" style="margin-bottom: 20px;">
+        <p>当前步骤: <strong id="currentAction"></strong></p>
+        <p id="voteProgress" style="display: none;">投票进度: <strong id="voteCount"></strong></p>
+        <p style="font-size: 14px; color: var(--gray-600);">
+          最后更新: <span id="lastUpdate"></span>
+        </p>
+      </div>
+      
+      <div class="teams" id="teams">
+        <div class="team team-a">
+          <div class="team-title">A队</div>
+          <div id="teamAPlayers"></div>
+        </div>
+        <div class="team team-b">
+          <div class="team-title">B队</div>
+          <div id="teamBPlayers"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2 class="card-title">选择地图</h2>
+      <div id="mapGrid" class="map-grid"></div>
+    </div>
+    
+    <div class="card" id="historyCard" style="display: none;">
+      <h2 class="card-title">BP 历史</h2>
+      <div id="bpHistory"></div>
+    </div>
+  </div>
+  
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    if (!checkLogin()) throw new Error('未登录');
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('room_id');
+    
+    if (!roomId) {
+      showToast('房间ID缺失', 'error');
+      setTimeout(() => navigate('lobby.html'), 1500);
+      throw new Error('房间ID缺失');
+    }
+    
+    const user = User.get();
+    document.getElementById('userName').textContent = user.nickname;
+    document.getElementById('userElo').textContent = `ELO: ${user.elo || 1000}`;
+    
+    let bpId = null;
+    let room = null;
+    let bp = null;
+    let myTeam = '';
+    let pollingTimer = null;
+    
+    // 初始化
+    async function init() {
+      showLoading('加载中...');
+      
+      // 获取房间信息
+      const roomResult = await API.room.getStatus(roomId);
+      if (roomResult.code !== 0) {
+        hideLoading();
+        showToast('获取房间信息失败', 'error');
+        return;
+      }
+      
+      room = roomResult.data;
+      
+      // 判断我的队伍
+      if (room.teamA.includes(user.player_id)) {
+        myTeam = 'A';
+      } else if (room.teamB.includes(user.player_id)) {
+        myTeam = 'B';
+      }
+      
+      // 显示队伍信息
+      displayTeams();
+      
+      // 开始或加载 BP
+      if (room.bp_id) {
+        bpId = room.bp_id;
+        await getBPStatus();
+      } else {
+        await startBP();
+      }
+      
+      hideLoading();
+      
+      // 开始轮询
+      startPolling();
+    }
+    
+    // 开始 BP
+    async function startBP() {
+      const result = await API.bp.start(roomId);
+      
+      if (result.code === 0) {
+        bpId = result.data.bp_id;
+        await getBPStatus();
+      } else {
+        showToast(result.message, 'error');
+      }
+    }
+    
+    // 获取 BP 状态
+    async function getBPStatus() {
+      if (!bpId) return;
+      
+      const result = await API.bp.getStatus(bpId);
+      
+      if (result.code === 0) {
+        bp = result.data;
+        updateBPDisplay();
+        
+        // 如果 BP 完成，跳转到比赛页面
+        if (bp.status === 'completed') {
+          stopPolling();
+          showToast('BP 完成，跳转到比赛录入页面', 'success');
+          setTimeout(() => {
+            navigate(`match.html?room_id=${roomId}`);
+          }, 1500);
+        }
+      }
+    }
+    
+    // 更新 BP 显示
+    function updateBPDisplay() {
+      if (!bp) return;
+      
+      // 更新当前操作
+      const currentActionEl = document.getElementById('currentAction');
+      if (bp.next_action) {
+        const actionText = bp.next_action.action === 'ban' ? 'Ban' : 'Pick';
+        currentActionEl.textContent = `${bp.next_action.team}队 ${actionText} 地图`;
+        currentActionEl.style.color = bp.next_action.team === 'A' ? '#3182ce' : '#e53e3e';
+      } else {
+        currentActionEl.textContent = 'BP 完成';
+      }
+      
+      // 更新投票进度
+      const voteProgressEl = document.getElementById('voteProgress');
+      if (bp.current_votes && Object.keys(bp.current_votes).length > 0) {
+        const voteCounts = {};
+        Object.values(bp.current_votes).forEach(m => {
+          voteCounts[m] = (voteCounts[m] || 0) + 1;
+        });
+        
+        const teamPlayers = myTeam === 'A' ? room.teamA : room.teamB;
+        const requiredVotes = Math.ceil(teamPlayers.length / 2);
+        const maxVotes = Math.max(...Object.values(voteCounts));
+        
+        document.getElementById('voteCount').textContent = `${maxVotes}/${requiredVotes}`;
+        voteProgressEl.style.display = 'block';
+      } else {
+        voteProgressEl.style.display = 'none';
+      }
+      
+      // 更新最后更新时间
+      document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+      
+      // 显示地图
+      displayMaps();
+      
+      // 显示历史
+      if (bp.bp_history && bp.bp_history.length > 0) {
+        displayHistory();
+      }
+    }
+    
+    // 显示队伍
+    function displayTeams() {
+      const teamAEl = document.getElementById('teamAPlayers');
+      const teamBEl = document.getElementById('teamBPlayers');
+      
+      teamAEl.innerHTML = room.teamA.map(pid => {
+        const player = room.players.find(p => p.player_id === pid);
+        return `
+          <div class="player-item">
+            <strong>${player ? player.nickname : '未知'}</strong>
+            <span style="color: var(--gray-500);">ELO: ${player ? player.elo : 0}</span>
+          </div>
+        `;
+      }).join('');
+      
+      teamBEl.innerHTML = room.teamB.map(pid => {
+        const player = room.players.find(p => p.player_id === pid);
+        return `
+          <div class="player-item">
+            <strong>${player ? player.nickname : '未知'}</strong>
+            <span style="color: var(--gray-500);">ELO: ${player ? player.elo : 0}</span>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    // 显示地图
+    function displayMaps() {
+      const mapGrid = document.getElementById('mapGrid');
+      
+      const availableMaps = bp.available_maps || [];
+      const allMaps = bp.maps || ['inferno', 'mirage', 'dust2', 'nuke', 'overpass', 'ancient', 'anubis'];
+      
+      mapGrid.innerHTML = allMaps.map(map => {
+        const isAvailable = availableMaps.includes(map);
+        const isPicked = bp.final_map === map;
+        
+        let className = 'map-card';
+        let status = '';
+        
+        if (isPicked) {
+          className += ' map-picked';
+          status = '✓ 已选择';
+        } else if (!isAvailable) {
+          className += ' map-banned';
+          status = '✗ 已Ban';
+        }
+        
+        return `
+          <div class="${className}" onclick="selectMap('${map}')" data-map="${map}">
+            <div class="map-name">${getMapName(map)}</div>
+            <div class="map-status">${status}</div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    // 显示历史
+    function displayHistory() {
+      const historyCard = document.getElementById('historyCard');
+      const historyEl = document.getElementById('bpHistory');
+      
+      historyCard.style.display = 'block';
+      
+      historyEl.innerHTML = bp.bp_history.map((item, index) => {
+        const actionClass = item.action === 'ban' ? 'bp-action-ban' : 'bp-action-pick';
+        const actionText = item.action === 'ban' ? 'Ban' : 'Pick';
+        
+        return `
+          <div class="bp-history-item">
+            <div>
+              <span style="font-weight: 600;">${item.team}队</span>
+              <span class="${actionClass}">${actionText}</span>
+              <span style="font-weight: 600;">${getMapName(item.map)}</span>
+            </div>
+            <span style="color: var(--gray-500); font-size: 14px;">
+              步骤 ${index + 1}
+            </span>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    // 选择地图（投票）
+    async function selectMap(map) {
+      if (!bp || !bp.next_action) {
+        showToast('BP 已完成', 'info');
+        return;
+      }
+      
+      // 检查地图是否可用
+      if (!bp.available_maps.includes(map)) {
+        showToast('该地图不可用', 'error');
+        return;
+      }
+      
+      // 检查是否轮到我的队伍
+      if (bp.next_action.team !== myTeam) {
+        showToast('当前不是您的队伍操作', 'error');
+        return;
+      }
+      
+      showLoading('投票中...');
+      
+      const result = await API.bp.vote(
+        bpId,
+        bp.next_action.team,
+        map,
+        bp.next_action.action,
+        user.player_id
+      );
+      
+      hideLoading();
+      
+      if (result.code === 0) {
+        showToast(result.message, 'success');
+        
+        // 等待500ms再刷新
+        setTimeout(() => getBPStatus(), 500);
+      } else {
+        showToast(result.message, 'error');
+      }
+    }
+    
+    // 轮询
+    function startPolling() {
+      stopPolling();
+      pollingTimer = setInterval(getBPStatus, 1500);
+    }
+    
+    function stopPolling() {
+      if (pollingTimer) {
+        clearInterval(pollingTimer);
+        pollingTimer = null;
+      }
+    }
+    
+    // 页面卸载时清理
+    window.addEventListener('beforeunload', stopPolling);
+    
+    // 初始化
+    init();
+  </script>
+</body>
+</html>
+

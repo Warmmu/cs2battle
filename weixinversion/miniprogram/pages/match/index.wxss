@@ -1,0 +1,193 @@
+/* 比赛结果录入页面样式 */
+.container {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 20rpx;
+  padding-bottom: 120rpx;
+}
+
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  text-align: center;
+  color: #fff;
+}
+
+.title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: bold;
+  margin-bottom: 10rpx;
+}
+
+.map {
+  display: block;
+  font-size: 24rpx;
+  opacity: 0.9;
+  text-transform: capitalize;
+}
+
+.sync-status {
+  margin-top: 15rpx;
+  padding: 10rpx 15rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10rpx;
+  font-size: 20rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sync-text {
+  color: rgba(82, 196, 26, 1);
+  font-weight: bold;
+}
+
+.sync-time {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.score-section {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.score-input {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30rpx;
+}
+
+.score-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.team-label {
+  font-size: 28rpx;
+  color: #666;
+  font-weight: bold;
+}
+
+.score-value {
+  width: 120rpx;
+  height: 100rpx;
+  background: #f5f5f5;
+  border-radius: 15rpx;
+  text-align: center;
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.separator {
+  font-size: 60rpx;
+  font-weight: bold;
+  color: #999;
+}
+
+.stats-section {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.team-stats {
+  margin-bottom: 30rpx;
+}
+
+.team-stats:last-child {
+  margin-bottom: 0;
+}
+
+.team-name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #667eea;
+  margin-bottom: 15rpx;
+  padding-bottom: 10rpx;
+  border-bottom: 2rpx solid #eee;
+}
+
+.player-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.player-stat:last-child {
+  border-bottom: none;
+}
+
+.player-name {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+  flex: 1;
+}
+
+.stat-inputs {
+  display: flex;
+  gap: 15rpx;
+}
+
+.stat-input-item {
+  display: flex;
+  align-items: center;
+  gap: 5rpx;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: #999;
+  font-weight: bold;
+}
+
+.stat-value {
+  width: 80rpx;
+  height: 60rpx;
+  background: #f5f5f5;
+  border-radius: 10rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.submit-btn {
+  position: fixed;
+  bottom: 30rpx;
+  left: 40rpx;
+  right: 40rpx;
+  height: 90rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: bold;
+  border-radius: 45rpx;
+  box-shadow: 0 10rpx 30rpx rgba(102, 126, 234, 0.4);
+}
+
+.submit-btn:active {
+  opacity: 0.8;
+  transform: scale(0.98);
+}
+

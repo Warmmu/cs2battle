@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>比赛录入 - CS2 内战匹配系统</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <a href="lobby.html" class="logo">CS2 BP系统</a>
+      <div class="user-info">
+        <span class="user-name" id="userName"></span>
+        <span class="user-elo" id="userElo"></span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="card">
+      <h2 class="card-title">比赛结果录入</h2>
+      
+      <div style="margin-bottom: 20px;">
+        <p>地图: <strong id="matchMap"></strong></p>
+        <p style="font-size: 14px; color: var(--gray-600);">
+          最后同步: <span id="lastSync"></span>
+        </p>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">比分</label>
+        <div style="display: flex; gap: 20px; align-items: center;">
+          <div>
+            <label>A队得分</label>
+            <input 
+              type="number" 
+              id="scoreA" 
+              class="form-input" 
+              style="width: 100px;"
+              min="0"
+              value="0"
+            >
+          </div>
+          <div style="font-size: 24px; font-weight: bold;">:</div>
+          <div>
+            <label>B队得分</label>
+            <input 
+              type="number" 
+              id="scoreB" 
+              class="form-input" 
+              style="width: 100px;"
+              min="0"
+              value="0"
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2 class="card-title">A队数据</h2>
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th>玩家</th>
+            <th>击杀</th>
+            <th>死亡</th>
+            <th>助攻</th>
+            <th>K/D</th>
+          </tr>
+        </thead>
+        <tbody id="teamAStats"></tbody>
+      </table>
+    </div>
+    
+    <div class="card">
+      <h2 class="card-title">B队数据</h2>
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th>玩家</th>
+            <th>击杀</th>
+            <th>死亡</th>
+            <th>助攻</th>
+            <th>K/D</th>
+          </tr>
+        </thead>
+        <tbody id="teamBStats"></tbody>
+      </table>
+    </div>
+    
+    <div class="card">
+      <button class="btn btn-primary btn-block" onclick="submitMatch()">
+        提交比赛结果
+      </button>
+    </div>
+  </div>
+  
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    if (!checkLogin()) throw new Error('未登录');
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('room_id');
+    
+    if (!roomId) {
+      showToast('房间ID缺失', 'error');
+      setTimeout(() => navigate('lobby.html'), 1500);
+      throw new Error('房间ID缺失');
+    }
+    
+    const user = User.get();
+    document.getElementById('userName').textContent = user.nickname;
+    document.getElementById('userElo').textContent = `ELO: ${user.elo || 1000}`;
+    
+    let match = null;
+    let room = null;
+    let playerStats = [];
+    let pollingTimer = null;
+    let saveTimer = null;
+    
+    // 初始化
+    async function init() {
+      showLoading('加载中...');
+      
+      // 获取房间信息
+      const roomResult = await API.room.getStatus(roomId);
+      if (roomResult.code !== 0) {
+        hideLoading();
+        showToast('获取房间信息失败', 'error');
+        return;
+      }
+      room = roomResult.data;
+      
+      // 获取比赛信息
+      const matchResult = await API.submit.getMatch(roomId);
+      hideLoading();
+      
+      if (matchResult.code !== 0) {
+        showToast('获取比赛信息失败', 'error');
+        return;
+      }
+      
+      match = matchResult.data;
+      
+      // 显示地图
+      document.getElementById('matchMap').textContent = getMapName(match.map);
+      
+      // 初始化比分
+      document.getElementById('scoreA').value = match.score_a || 0;
+      document.getElementById('scoreB').value = match.score_b || 0;
+      
+      // 初始化玩家统计
+      initPlayerStats();
+      
+      // 绑定输入事件
+      bindInputEvents();
+      
+      // 开始轮询
+      startPolling();
+    }
+    
+    // 初始化玩家统计
+    function initPlayerStats() {
+      playerStats = [...match.teamA, ...match.teamB].map(playerId => {
+        const existing = match.player_stats ? match.player_stats.find(s => s.player_id === playerId) : null;
+        return {
+          player_id: playerId,
+          kills: existing ? existing.kills : 0,
+          deaths: existing ? existing.deaths : 0,
+          assists: existing ? existing.assists : 0
+        };
+      });
+      
+      displayStats();
+    }
+    
+    // 显示统计数据
+    function displayStats() {
+      const teamAStats = document.getElementById('teamAStats');
+      const teamBStats = document.getElementById('teamBStats');
+      
+      teamAStats.innerHTML = match.teamA.map(playerId => {
+        const player = room.players.find(p => p.player_id === playerId);
+        const stat = playerStats.find(s => s.player_id === playerId);
+        const kd = stat.deaths > 0 ? (stat.kills / stat.deaths).toFixed(2) : stat.kills;
+        
+        return `
+          <tr>
+            <td><strong>${player ? player.nickname : '未知'}</strong></td>
+            <td>
+              <input type="number" class="stat-input" data-player="${playerId}" data-type="kills" 
+                     value="${stat.kills}" min="0">
+            </td>
+            <td>
+              <input type="number" class="stat-input" data-player="${playerId}" data-type="deaths" 
+                     value="${stat.deaths}" min="0">
+            </td>
+            <td>
+              <input type="number" class="stat-input" data-player="${playerId}" data-type="assists" 
+                     value="${stat.assists}" min="0">
+            </td>
+            <td>${kd}</td>
+          </tr>
+        `;
+      }).join('');
+      
+      teamBStats.innerHTML = match.teamB.map(playerId => {
+        const player = room.players.find(p => p.player_id === playerId);
+        const stat = playerStats.find(s => s.player_id === playerId);
+        const kd = stat.deaths > 0 ? (stat.kills / stat.deaths).toFixed(2) : stat.kills;
+        
+        return `
+          <tr>
+            <td><strong>${player ? player.nickname : '未知'}</strong></td>
+            <td>
+              <input type="number" class="stat-input" data-player="${playerId}" data-type="kills" 
+                     value="${stat.kills}" min="0">
+            </td>
+            <td>
+              <input type="number" class="stat-input" data-player="${playerId}" data-type="deaths" 
+                     value="${stat.deaths}" min="0">
+            </td>
+            <td>
+              <input type="number" class="stat-input" data-player="${playerId}" data-type="assists" 
+                     value="${stat.assists}" min="0">
+            </td>
+            <td>${kd}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+    
+    // 绑定输入事件
+    function bindInputEvents() {
+      // 比分输入
+      document.getElementById('scoreA').addEventListener('input', saveData);
+      document.getElementById('scoreB').addEventListener('input', saveData);
+      
+      // 统计数据输入
+      document.querySelectorAll('.stat-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const playerId = e.target.dataset.player;
+          const type = e.target.dataset.type;
+          const value = parseInt(e.target.value) || 0;
+          
+          const stat = playerStats.find(s => s.player_id === playerId);
+          if (stat) {
+            stat[type] = value;
+          }
+          
+          // 更新K/D显示
+          displayStats();
+          saveData();
+        });
+      });
+    }
+    
+    // 保存数据（防抖）
+    function saveData() {
+      if (saveTimer) {
+        clearTimeout(saveTimer);
+      }
+      
+      saveTimer = setTimeout(async () => {
+        const scoreA = parseInt(document.getElementById('scoreA').value) || 0;
+        const scoreB = parseInt(document.getElementById('scoreB').value) || 0;
+        
+        await API.submit.update(match._id, scoreA, scoreB, playerStats);
+      }, 1000);
+    }
+    
+    // 获取比赛状态（轮询）
+    async function getMatchStatus() {
+      const result = await API.submit.getMatch(roomId);
+      
+      if (result.code === 0) {
+        const serverMatch = result.data;
+        
+        // 如果比赛已完成，跳转
+        if (serverMatch.status === 'finished') {
+          stopPolling();
+          showToast('比赛已提交', 'success');
+          setTimeout(() => navigate('lobby.html'), 1500);
+          return;
+        }
+        
+        // 同步数据
+        if (serverMatch.score_a !== undefined) {
+          document.getElementById('scoreA').value = serverMatch.score_a || 0;
+        }
+        if (serverMatch.score_b !== undefined) {
+          document.getElementById('scoreB').value = serverMatch.score_b || 0;
+        }
+        
+        if (serverMatch.player_stats && serverMatch.player_stats.length > 0) {
+          serverMatch.player_stats.forEach(serverStat => {
+            const localStat = playerStats.find(s => s.player_id === serverStat.player_id);
+            if (localStat) {
+              localStat.kills = serverStat.kills || 0;
+              localStat.deaths = serverStat.deaths || 0;
+              localStat.assists = serverStat.assists || 0;
+            }
+          });
+          
+          displayStats();
+          bindInputEvents();
+        }
+        
+        document.getElementById('lastSync').textContent = new Date().toLocaleTimeString();
+      }
+    }
+    
+    // 提交比赛结果
+    async function submitMatch() {
+      const scoreA = parseInt(document.getElementById('scoreA').value) || 0;
+      const scoreB = parseInt(document.getElementById('scoreB').value) || 0;
+      
+      // 验证数据
+      if (scoreA === 0 && scoreB === 0) {
+        showToast('请输入比分', 'error');
+        return;
+      }
+      
+      const incomplete = playerStats.some(p => !p.kills && !p.deaths);
+      if (incomplete) {
+        showToast('请填写所有玩家数据', 'error');
+        return;
+      }
+      
+      showConfirm('确认提交', '提交后将无法修改，确定要提交吗？', async () => {
+        showLoading('提交中...');
+        
+        const result = await API.submit.finish(match._id, scoreA, scoreB, playerStats);
+        
+        hideLoading();
+        
+        if (result.code === 0) {
+          showToast('提交成功', 'success');
+          
+          // 显示 ELO 变化
+          if (result.data && result.data.elo_changes) {
+            showELOChanges(result.data.elo_changes);
+          }
+          
+          setTimeout(() => navigate('lobby.html'), 3000);
+        } else {
+          showToast(result.message, 'error');
+        }
+      });
+    }
+    
+    // 显示 ELO 变化
+    function showELOChanges(changes) {
+      const message = changes.map(c => 
+        `${c.nickname}: ${c.elo_change > 0 ? '+' : ''}${c.elo_change} (${c.new_elo})`
+      ).join('\n');
+      
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = `
+        <div class="modal-content">
+          <h3 class="modal-title">ELO 变化</h3>
+          <pre style="white-space: pre-wrap; line-height: 1.8;">${message}</pre>
+          <div class="modal-buttons">
+            <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">
+              确定
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+    
+    // 轮询
+    function startPolling() {
+      stopPolling();
+      pollingTimer = setInterval(getMatchStatus, 2000);
+    }
+    
+    function stopPolling() {
+      if (pollingTimer) {
+        clearInterval(pollingTimer);
+        pollingTimer = null;
+      }
+    }
+    
+    // 页面卸载时清理
+    window.addEventListener('beforeunload', stopPolling);
+    
+    // 初始化
+    init();
+  </script>
+</body>
+</html>
+
