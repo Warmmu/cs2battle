@@ -8,7 +8,15 @@ const Storage = {
   
   get(key) {
     const value = localStorage.getItem(key);
-    return value ? JSON.parse(value) : null;
+    if (!value || value === 'undefined' || value === 'null') {
+      return null;
+    }
+    try {
+      return JSON.parse(value);
+    } catch (e) {
+      console.error('JSON parse error for key:', key, 'value:', value);
+      return null;
+    }
   },
   
   remove(key) {
@@ -23,16 +31,18 @@ const Storage = {
 // 用户信息管理
 const User = {
   save(data) {
-    Storage.set('player_id', data.player_id);
+    // 支持 _id 和 player_id 两种字段
+    const playerId = data._id || data.player_id;
+    Storage.set('player_id', playerId);
     Storage.set('nickname', data.nickname);
-    if (data.elo) Storage.set('elo', data.elo);
+    Storage.set('elo', data.elo || 1000);
   },
   
   get() {
     return {
       player_id: Storage.get('player_id'),
       nickname: Storage.get('nickname'),
-      elo: Storage.get('elo')
+      elo: Storage.get('elo') || 1000
     };
   },
   

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试页面 - CS2 BP系统</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-card">
+      <h1 class="auth-title">CS2 BP系统测试</h1>
+      <p class="auth-subtitle">功能测试页面</p>
+      
+      <div class="form-group">
+        <button class="btn btn-primary btn-block" onclick="testAnimations()">测试动画效果</button>
+      </div>
+      
+      <div class="form-group">
+        <button class="btn btn-success btn-block" onclick="testLocalStorage()">测试本地存储</button>
+      </div>
+      
+      <div class="form-group">
+        <button class="btn btn-danger btn-block" onclick="clearLocalStorage()">清空本地数据</button>
+      </div>
+      
+      <div class="form-group">
+        <button class="btn btn-secondary btn-block" onclick="window.location.href='index.html'">返回登录</button>
+      </div>
+      
+      <div id="testResult" style="margin-top: 20px; padding: 15px; background: var(--gray-100); border-radius: 8px; display: none;">
+        <h3 style="margin-bottom: 10px; color: var(--primary-color);">测试结果</h3>
+        <pre id="resultText" style="white-space: pre-wrap; font-size: 13px;"></pre>
+      </div>
+    </div>
+  </div>
+  
+  <script src="js/localStorage-db.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    // 测试动画效果
+    function testAnimations() {
+      showToast('✨ 动画测试：Toast 淡入动画', 'success');
+      
+      setTimeout(() => {
+        showToast('⚠️ 警告提示动画', 'warning');
+      }, 1000);
+      
+      setTimeout(() => {
+        showToast('❌ 错误提示动画', 'error');
+      }, 2000);
+      
+      setTimeout(() => {
+        showConfirm(
+          '确认对话框动画',
+          '这是一个带有缩放进入动画的确认对话框',
+          () => showToast('点击了确认', 'info'),
+          () => showToast('点击了取消', 'info')
+        );
+      }, 3000);
+    }
+    
+    // 测试本地存储
+    async function testLocalStorage() {
+      const resultDiv = document.getElementById('testResult');
+      const resultText = document.getElementById('resultText');
+      
+      resultDiv.style.display = 'block';
+      resultText.textContent = '测试中...\n\n';
+      
+      let results = [];
+      
+      // 测试1: 注册玩家
+      results.push('【测试1】注册玩家');
+      const registerResult = await API.auth.register('测试玩家' + Date.now(), 'STEAM_123');
+      results.push(`结果: ${registerResult.code === 0 ? '✓ 成功' : '✗ 失败'}`);
+      results.push(`数据: ${JSON.stringify(registerResult.data, null, 2)}\n`);
+      
+      if (registerResult.code === 0) {
+        const playerId = registerResult.data._id;
+        
+        // 测试2: 登录
+        results.push('【测试2】玩家登录');
+        const loginResult = await API.auth.login(registerResult.data.nickname);
+        results.push(`结果: ${loginResult.code === 0 ? '✓ 成功' : '✗ 失败'}\n`);
+        
+        // 测试3: 加入房间
+        results.push('【测试3】加入房间');
+        const roomResult = await API.room.join(playerId);
+        results.push(`结果: ${roomResult.code === 0 ? '✓ 成功' : '✗ 失败'}`);
+        if (roomResult.code === 0) {
+          results.push(`房间ID: ${roomResult.data._id}\n`);
+        }
+        
+        // 测试4: 获取排行榜
+        results.push('【测试4】获取排行榜');
+        const rankingResult = await API.history.getRanking();
+        results.push(`结果: ${rankingResult.code === 0 ? '✓ 成功' : '✗ 失败'}`);
+        results.push(`玩家数: ${rankingResult.data ? rankingResult.data.length : 0}\n`);
+        
+        // 测试5: 查看本地数据库
+        results.push('【测试5】本地数据库内容');
+        const db = localDB.getDB();
+        results.push(`玩家数: ${db.players.length}`);
+        results.push(`房间数: ${db.rooms.length}`);
+        results.push(`比赛数: ${db.matches.length}`);
+      }
+      
+      resultText.textContent = results.join('\n');
+      showToast('测试完成！', 'success');
+    }
+    
+    // 清空本地存储
+    function clearLocalStorage() {
+      showConfirm(
+        '确认清空',
+        '这将清空所有本地数据，包括玩家、房间、比赛记录等，是否继续？',
+        () => {
+          localDB.clearAll();
+          User.logout();
+          showToast('数据已清空', 'success');
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 1500);
+        }
+      );
+    }
+  </script>
+</body>
+</html>
+

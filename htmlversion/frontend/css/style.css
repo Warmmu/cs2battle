@@ -43,6 +43,7 @@ body {
   padding: 15px 0;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   margin-bottom: 30px;
+  animation: slideInFromTop 0.4s ease-out;
 }
 
 .header-content {
@@ -87,6 +88,13 @@ body {
   padding: 24px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
+  animation: fadeInUp 0.5s ease-out;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
 }
 
 .card-title {
@@ -145,6 +153,12 @@ body {
   background: var(--primary-dark);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  animation: pulse 0.6s ease-in-out infinite;
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  animation: none;
 }
 
 .btn-secondary {
@@ -254,6 +268,139 @@ body {
   to { transform: rotate(360deg); }
 }
 
+/* 新增动画定义 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(102, 126, 234, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes numberChange {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+    color: var(--warning-color);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 /* 模态框 */
 .modal-overlay {
   position: fixed;
@@ -266,6 +413,7 @@ body {
   justify-content: center;
   align-items: center;
   z-index: 9998;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .modal-content {
@@ -274,6 +422,7 @@ body {
   padding: 32px;
   max-width: 400px;
   width: 90%;
+  animation: scaleIn 0.3s ease-out;
 }
 
 .modal-title {
@@ -311,6 +460,7 @@ body {
   max-width: 400px;
   width: 100%;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: scaleIn 0.5s ease-out;
 }
 
 .auth-title {
@@ -357,10 +507,13 @@ body {
   justify-content: space-between;
   align-items: center;
   transition: all 0.3s;
+  animation: fadeInLeft 0.4s ease-out;
 }
 
 .room-item:hover {
   background: var(--gray-200);
+  transform: translateX(5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .room-status {
@@ -393,11 +546,19 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  animation: fadeIn 0.4s ease-out;
+  transition: all 0.3s;
+}
+
+.player-item:hover {
+  background: var(--gray-200);
+  transform: scale(1.02);
 }
 
 .player-ready {
   color: var(--success-color);
   font-weight: 600;
+  animation: bounce 1s ease-in-out;
 }
 
 .player-not-ready {
@@ -453,21 +614,28 @@ body {
   transition: all 0.3s;
 }
 
+.map-card {
+  animation: fadeIn 0.5s ease-out;
+}
+
 .map-card:hover:not(.map-banned) {
   border-color: var(--primary-color);
-  transform: translateY(-4px);
+  transform: translateY(-4px) scale(1.05);
   box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+  animation: glow 1.5s ease-in-out infinite;
 }
 
 .map-card.map-banned {
   opacity: 0.4;
   cursor: not-allowed;
   background: var(--gray-300);
+  animation: shake 0.5s ease-out;
 }
 
 .map-card.map-picked {
   border-color: var(--success-color);
   background: rgba(72, 187, 120, 0.1);
+  animation: pulse 0.6s ease-in-out, glow 2s ease-in-out infinite;
 }
 
 .map-name {
@@ -495,6 +663,13 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  animation: fadeInLeft 0.4s ease-out;
+  transition: all 0.3s;
+}
+
+.bp-history-item:hover {
+  background: var(--gray-200);
+  transform: translateX(5px);
 }
 
 .bp-action-ban {
@@ -533,11 +708,19 @@ body {
   border: 2px solid var(--gray-300);
   border-radius: 4px;
   text-align: center;
+  transition: all 0.3s;
 }
 
 .stats-table input:focus {
   outline: none;
   border-color: var(--primary-color);
+  transform: scale(1.1);
+  box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
+}
+
+.stats-table input[type="number"]::-webkit-inner-spin-button,
+.stats-table input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
 }
 
 /* 排行榜 */
@@ -594,6 +777,13 @@ body {
   border-radius: 8px;
   padding: 20px;
   border-left: 4px solid var(--gray-300);
+  animation: fadeInUp 0.5s ease-out;
+  transition: all 0.3s;
+}
+
+.history-item:hover {
+  transform: translateX(5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .history-item.win {
@@ -645,10 +835,48 @@ body {
 
 .elo-change.positive {
   color: var(--success-color);
+  animation: bounce 0.5s ease-out;
 }
 
 .elo-change.negative {
   color: var(--danger-color);
+  animation: shake 0.5s ease-out;
+}
+
+/* 数字变化动画类 */
+.number-change {
+  animation: numberChange 0.4s ease-out;
+}
+
+/* 页面进入动画延迟 */
+.card:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.card:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.card:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+/* 平滑滚动 */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 加载状态 */
+.loading-overlay {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.loading-spinner {
+  animation: spin 1s linear infinite, pulse 2s ease-in-out infinite;
 }
 
 /* 响应式设计 */

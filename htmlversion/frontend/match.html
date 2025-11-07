@@ -97,6 +97,7 @@
     </div>
   </div>
   
+  <script src="js/localStorage-db.js"></script>
   <script src="js/api.js"></script>
   <script src="js/utils.js"></script>
   <script>
@@ -118,7 +119,6 @@
     let match = null;
     let room = null;
     let playerStats = [];
-    let pollingTimer = null;
     let saveTimer = null;
     
     // 初始化
@@ -158,8 +158,8 @@
       // 绑定输入事件
       bindInputEvents();
       
-      // 开始轮询
-      startPolling();
+      // 更新最后同步时间
+      document.getElementById('lastSync').textContent = new Date().toLocaleTimeString();
     }
     
     // 初始化玩家统计
@@ -258,7 +258,7 @@
       });
     }
     
-    // 保存数据（防抖）
+    // 保存数据（防抖） - 本地存储版本
     function saveData() {
       if (saveTimer) {
         clearTimeout(saveTimer);
@@ -269,48 +269,13 @@
         const scoreB = parseInt(document.getElementById('scoreB').value) || 0;
         
         await API.submit.update(match._id, scoreA, scoreB, playerStats);
-      }, 1000);
-    }
-    
-    // 获取比赛状态（轮询）
-    async function getMatchStatus() {
-      const result = await API.submit.getMatch(roomId);
-      
-      if (result.code === 0) {
-        const serverMatch = result.data;
         
-        // 如果比赛已完成，跳转
-        if (serverMatch.status === 'finished') {
-          stopPolling();
-          showToast('比赛已提交', 'success');
-          setTimeout(() => navigate('lobby.html'), 1500);
-          return;
-        }
-        
-        // 同步数据
-        if (serverMatch.score_a !== undefined) {
-          document.getElementById('scoreA').value = serverMatch.score_a || 0;
-        }
-        if (serverMatch.score_b !== undefined) {
-          document.getElementById('scoreB').value = serverMatch.score_b || 0;
-        }
-        
-        if (serverMatch.player_stats && serverMatch.player_stats.length > 0) {
-          serverMatch.player_stats.forEach(serverStat => {
-            const localStat = playerStats.find(s => s.player_id === serverStat.player_id);
-            if (localStat) {
-              localStat.kills = serverStat.kills || 0;
-              localStat.deaths = serverStat.deaths || 0;
-              localStat.assists = serverStat.assists || 0;
-            }
-          });
-          
-          displayStats();
-          bindInputEvents();
-        }
-        
-        document.getElementById('lastSync').textContent = new Date().toLocaleTimeString();
-      }
+        // 更新最后保存时间（带动画）
+        const lastSyncEl = document.getElementById('lastSync');
+        lastSyncEl.textContent = new Date().toLocaleTimeString();
+        lastSyncEl.classList.add('number-change');
+        setTimeout(() => lastSyncEl.classList.remove('number-change'), 400);
+      }, 500);
     }
     
     // 提交比赛结果
@@ -373,22 +338,6 @@
       `;
       document.body.appendChild(modal);
     }
-    
-    // 轮询
-    function startPolling() {
-      stopPolling();
-      pollingTimer = setInterval(getMatchStatus, 2000);
-    }
-    
-    function stopPolling() {
-      if (pollingTimer) {
-        clearInterval(pollingTimer);
-        pollingTimer = null;
-      }
-    }
-    
-    // 页面卸载时清理
-    window.addEventListener('beforeunload', stopPolling);
     
     // 初始化
     init();

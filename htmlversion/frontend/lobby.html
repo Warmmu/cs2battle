@@ -61,6 +61,7 @@
     </div>
   </div>
   
+  <script src="js/localStorage-db.js"></script>
   <script src="js/api.js"></script>
   <script src="js/utils.js"></script>
   <script>
@@ -70,8 +71,6 @@
     }
     
     let currentRoom = null;
-    let pollingTimer = null;
-    let roomListTimer = null;
     let matchingStarted = false;
     
     const user = User.get();
@@ -90,7 +89,6 @@
         currentRoom = result.data;
         showRoomSection();
         updateRoomInfo();
-        startPolling();
         showToast('加入成功', 'success');
       } else {
         showToast(result.message, 'error');
@@ -121,15 +119,10 @@
         
         await API.room.leave(user.player_id, currentRoom._id);
         
-        stopPolling();
         currentRoom = null;
         matchingStarted = false;
         showNoRoomSection();
         showToast('已离开房间', 'success');
-        
-        // 重新开始获取房间列表
-        getAvailableRooms();
-        startRoomListPolling();
       });
     }
     
@@ -165,7 +158,6 @@
         
         // 如果房间状态变为 matching 或 bp，跳转到 BP 页面
         if (currentRoom.status === 'matching' || currentRoom.status === 'bp') {
-          stopPolling();
           navigate(`bp.html?room_id=${currentRoom._id}`);
           return;
         }
@@ -248,37 +240,11 @@
     function showRoomSection() {
       document.getElementById('noRoomSection').style.display = 'none';
       document.getElementById('inRoomSection').style.display = 'block';
-      stopRoomListPolling();
     }
     
     function showNoRoomSection() {
       document.getElementById('noRoomSection').style.display = 'block';
       document.getElementById('inRoomSection').style.display = 'none';
-    }
-    
-    // 开始轮询
-    function startPolling() {
-      stopPolling();
-      pollingTimer = setInterval(getRoomStatus, 2000);
-    }
-    
-    function stopPolling() {
-      if (pollingTimer) {
-        clearInterval(pollingTimer);
-        pollingTimer = null;
-      }
-    }
-    
-    function startRoomListPolling() {
-      stopRoomListPolling();
-      roomListTimer = setInterval(getAvailableRooms, 5000);
-    }
-    
-    function stopRoomListPolling() {
-      if (roomListTimer) {
-        clearInterval(roomListTimer);
-        roomListTimer = null;
-      }
     }
     
     // 导航功能
@@ -304,16 +270,6 @@
         }, 1000);
       });
     }
-    
-    // 页面加载时获取房间列表
-    getAvailableRooms();
-    startRoomListPolling();
-    
-    // 页面卸载时清理
-    window.addEventListener('beforeunload', () => {
-      stopPolling();
-      stopRoomListPolling();
-    });
   </script>
 </body>
 </html>

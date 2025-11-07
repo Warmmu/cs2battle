@@ -1,110 +1,113 @@
-// API 调用封装
-const API_BASE_URL = 'http://localhost:3000/api';
+// API 调用封装 - 使用本地存储
+// 注意：确保 localStorage-db.js 已加载
 
 class API {
-  // 通用请求方法
-  static async request(url, options = {}) {
-    try {
-      const response = await fetch(`${API_BASE_URL}${url}`, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers
-        }
-      });
-      
-      const data = await response.json();
-      return data;
-    } catch (err) {
-      console.error('API 请求失败:', err);
-      return {
-        code: 9999,
-        message: '网络请求失败：' + err.message,
-        data: null
-      };
-    }
-  }
-  
-  // GET 请求
-  static async get(url) {
-    return this.request(url, { method: 'GET' });
-  }
-  
-  // POST 请求
-  static async post(url, data) {
-    return this.request(url, {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
+  // 模拟异步延迟
+  static async delay(ms = 100) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
   
   // 认证相关
   static auth = {
-    register: (nickname, steam_id = '') => 
-      API.post('/auth/register', { nickname, steam_id }),
+    register: async (nickname, steam_id = '') => {
+      await API.delay(200);
+      return localDB.registerPlayer(nickname, steam_id);
+    },
     
-    login: (nickname) => 
-      API.post('/auth/login', { nickname })
+    login: async (nickname) => {
+      await API.delay(200);
+      return localDB.loginPlayer(nickname);
+    }
   }
   
   // 房间相关
   static room = {
-    join: (player_id) => 
-      API.post('/room/join', { player_id }),
+    join: async (player_id) => {
+      await API.delay(150);
+      return localDB.joinRoom(player_id);
+    },
     
-    ready: (player_id, room_id, ready) => 
-      API.post('/room/ready', { player_id, room_id, ready }),
+    ready: async (player_id, room_id, ready) => {
+      await API.delay(100);
+      return localDB.setReady(player_id, room_id, ready);
+    },
     
-    getStatus: (room_id) => 
-      API.get(`/room/${room_id}`),
+    getStatus: async (room_id) => {
+      await API.delay(50);
+      return localDB.getRoomStatus(room_id);
+    },
     
-    getAvailable: () => 
-      API.get('/room'),
+    getAvailable: async () => {
+      await API.delay(100);
+      return localDB.getAvailableRooms();
+    },
     
-    leave: (player_id, room_id) => 
-      API.post('/room/leave', { player_id, room_id })
+    leave: async (player_id, room_id) => {
+      await API.delay(100);
+      return localDB.leaveRoom(player_id, room_id);
+    }
   }
   
   // 匹配相关
   static match = {
-    start: (room_id) => 
-      API.post('/match/start', { room_id })
+    start: async (room_id) => {
+      await API.delay(200);
+      return localDB.startMatch(room_id);
+    }
   }
   
   // BP 相关
   static bp = {
-    start: (room_id) => 
-      API.post('/bp/start', { room_id }),
+    start: async (room_id) => {
+      await API.delay(150);
+      return localDB.startBP(room_id);
+    },
     
-    vote: (bp_id, team, map, bp_action, player_id) => 
-      API.post('/bp/vote', { bp_id, team, map, bp_action, player_id }),
+    vote: async (bp_id, team, map, bp_action, player_id) => {
+      await API.delay(100);
+      return localDB.voteBP(bp_id, team, map, bp_action, player_id);
+    },
     
-    getStatus: (bp_id) => 
-      API.get(`/bp/${bp_id}`)
+    getStatus: async (bp_id) => {
+      await API.delay(50);
+      return localDB.getBPStatus(bp_id);
+    }
   }
   
   // 比赛相关
   static submit = {
-    update: (match_id, score_a, score_b, player_stats) => 
-      API.post('/submit/update', { match_id, score_a, score_b, player_stats }),
+    update: async (match_id, score_a, score_b, player_stats) => {
+      await API.delay(50);
+      return localDB.updateMatch(match_id, score_a, score_b, player_stats);
+    },
     
-    finish: (match_id, score_a, score_b, player_stats) => 
-      API.post('/submit/finish', { match_id, score_a, score_b, player_stats }),
+    finish: async (match_id, score_a, score_b, player_stats) => {
+      await API.delay(200);
+      return localDB.finishMatch(match_id, score_a, score_b, player_stats);
+    },
     
-    getMatch: (room_id) => 
-      API.get(`/submit/${room_id}`)
+    getMatch: async (room_id) => {
+      await API.delay(50);
+      return localDB.getMatch(room_id);
+    }
   }
   
   // 历史记录相关
   static history = {
-    getPlayer: (player_id) => 
-      API.get(`/history/player/${player_id}`),
+    getPlayer: async (player_id) => {
+      await API.delay(100);
+      return localDB.getPlayerHistory(player_id);
+    },
     
-    getRanking: () => 
-      API.get('/history/ranking'),
+    getRanking: async () => {
+      await API.delay(100);
+      return localDB.getRanking();
+    },
     
-    getPlayerInfo: (player_id) => 
-      API.get(`/history/player-info/${player_id}`)
+    getPlayerInfo: async (player_id) => {
+      await API.delay(100);
+      return localDB.getPlayerInfo(player_id);
+    }
   }
 }
 

@@ -52,6 +52,7 @@
     </div>
   </div>
   
+  <script src="js/localStorage-db.js"></script>
   <script src="js/api.js"></script>
   <script src="js/utils.js"></script>
   <script>
@@ -74,7 +75,6 @@
     let room = null;
     let bp = null;
     let myTeam = '';
-    let pollingTimer = null;
     
     // 初始化
     async function init() {
@@ -109,9 +109,6 @@
       }
       
       hideLoading();
-      
-      // 开始轮询
-      startPolling();
     }
     
     // 开始 BP
@@ -138,7 +135,6 @@
         
         // 如果 BP 完成，跳转到比赛页面
         if (bp.status === 'completed') {
-          stopPolling();
           showToast('BP 完成，跳转到比赛录入页面', 'success');
           setTimeout(() => {
             navigate(`match.html?room_id=${roomId}`);
@@ -308,28 +304,12 @@
       if (result.code === 0) {
         showToast(result.message, 'success');
         
-        // 等待500ms再刷新
-        setTimeout(() => getBPStatus(), 500);
+        // 刷新 BP 状态
+        setTimeout(() => getBPStatus(), 300);
       } else {
         showToast(result.message, 'error');
       }
     }
-    
-    // 轮询
-    function startPolling() {
-      stopPolling();
-      pollingTimer = setInterval(getBPStatus, 1500);
-    }
-    
-    function stopPolling() {
-      if (pollingTimer) {
-        clearInterval(pollingTimer);
-        pollingTimer = null;
-      }
-    }
-    
-    // 页面卸载时清理
-    window.addEventListener('beforeunload', stopPolling);
     
     // 初始化
     init();

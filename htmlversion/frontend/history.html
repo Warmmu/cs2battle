@@ -50,6 +50,7 @@
     </div>
   </div>
   
+  <script src="js/localStorage-db.js"></script>
   <script src="js/api.js"></script>
   <script src="js/utils.js"></script>
   <script>
@@ -66,7 +67,7 @@
       // 获取玩家信息
       const playerResult = await API.history.getPlayerInfo(user.player_id);
       if (playerResult.code === 0) {
-        const player = playerResult.data;
+        const player = playerResult.data.player;
         document.getElementById('totalMatches').textContent = player.total_matches || 0;
         document.getElementById('wins').textContent = player.wins || 0;
         document.getElementById('losses').textContent = player.losses || 0;
